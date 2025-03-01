@@ -9,7 +9,10 @@ There is very little along the lines of error checking. Use at your own risk.
 
 to compile:    `gcc twits.c -o twits.exe -lcurl`
 
-args: callsign, starting minute, id1, id3, [comment], [details]
+if needed, install libcurl, something like this:  `sudo apt-get update && sudo apt install libcurl4-openssl-dev`
+
+
+Call the program as a cron job, with these arguments: callsign, starting minute, id1, id3, [comment], [details]
 
 example crontab setup: `crontab -e`
 

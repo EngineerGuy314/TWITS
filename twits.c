@@ -15,6 +15,8 @@ time_t epoch_time;
 char query_raw[350];
 char query_stringified[350];
 FILE *fp;
+FILE *log_file;
+
 CURL *curl;
 CURLcode res;
 char site_response[2000];
@@ -54,7 +56,7 @@ void send_query_and_write_reponse_to_file(void)
 {
 	replace_spaces(query_raw,query_stringified);
 
-	printf("Query string: %s and len: %ld\n",query_raw, strlen(query_raw));
+	fprintf(log_file,"Query string: %s and len: %ld\n",query_raw, strlen(query_raw));
 //	printf("After stringification: %s\nits length: %li\n",query_stringified,strlen(query_stringified));
 
 	fp = fopen("curl_response.tmp","wb");  //wb=write binary: overwrites and creates if neeed. 
@@ -72,7 +74,7 @@ void process_1st_packet(void)
 	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
 		printf("response to 1st was EMPTY!\n");
 	
-	printf("response to first packet was:\n %s|n",site_response);
+	fprintf(log_file,"response to first packet was: %s",site_response);
 
     char *token;
     int count = 0;
@@ -81,12 +83,13 @@ void process_1st_packet(void)
 	{
         count++;
         if (count == 11) snprintf(_4chargrid,5,"%s",token);      //5 instead of 4 cause snprintf automatically wants to make last one a NULL            
-	    if (count == 8) snprintf(_uploader,7,"%s",token); 
+	    if (count == 4) snprintf(_uploader,7,"%s",token); 
 
 		token = strtok(NULL, "\t");
 	}
 	fclose(fp);
 
+fprintf(log_file, "Parsing of 1st packet reveals: uploader: %s and regular callsign (already known i hope): %s and the grid: %s\n",_uploader,callsign,_4chargrid);
 }
 //******************************************************************************
 
@@ -95,7 +98,7 @@ void process_2nd_packet(void)
 	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to open and read the file anyway? Fuck you, thats why.
 	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
 		printf("response to 2nd was EMPTY!\n");	
-//	printf("\n REPONSE TO SECOND:\n %s|n",site_response);
+	fprintf(log_file,"REPONSE TO SECOND:\n %s|n",site_response);
 
 	char *token;
     int count = 0;
@@ -109,7 +112,8 @@ void process_2nd_packet(void)
 		token = strtok(NULL, "\t");
 	}
 
-	printf("Telem callsign, grid, power: %s %s %d\n",_telem_callsign,_telem_grid,_telem_power);
+		printf("Telem callsign, grid, power: %s %s %d\n",_telem_callsign,_telem_grid,_telem_power);
+		fprintf(log_file,"Telem callsign, grid, power: %s %s %d\n",_telem_callsign,_telem_grid,_telem_power);
 	fclose(fp);
 }
 //************************************************************
@@ -180,7 +184,8 @@ void send_to_sondehub(void)  //via json payload
     "\"alt\":%d"
     "}]",datetime,comment,detail,_uploader,callsign,lat,lon,altitude);           
 
-	printf("\nJason Payload is: %s\n",json_payload);
+			printf("\nJason Payload is: %s\n",json_payload);
+			fprintf(log_file,"Jason Payload is: %s\n",json_payload);
 
 		struct curl_slist *headers = NULL;	
        
@@ -201,13 +206,15 @@ void send_to_sondehub(void)  //via json payload
 
 //***************************************************************************
 int main(int argc, char *argv[]) {
+			log_file = fopen("twits_log.txt","a");  
+	epoch_time = time(NULL); //      printf("Epoch time: %ld\n", epoch_time);
 	curl = curl_easy_init();
-	printf("arg count: %d, callsio: %s arg 2 start minute: %s arg3 id1: %s arg4 id3: %s\n",argc,argv[1],argv[2],argv[3],argv[4]); //callsign, minute, id1, id3
+			printf("arg count: %d, callsio: %s arg 2 start minute: %s arg3 id1: %s arg4 id3: %s\n",argc,argv[1],argv[2],argv[3],argv[4]); //callsign, minute, id1, id3
+			fprintf(log_file, "epoch: %d arg count: %d, callsio: %s arg 2 start minute: %s arg3 id1: %s arg4 id3: %s\n",epoch_time,argc,argv[1],argv[2],argv[3],argv[4]); 
 	snprintf(callsign, 7, "%s",argv[1]);
 	if (argc >5) snprintf(comment,99,"%s",argv[5]); else  snprintf(comment,99,"generic comment");
 	if (argc >6) snprintf(detail,99,"%s",argv[6]); else  snprintf(detail,99,"generic detail");
 
-	epoch_time = time(NULL); //      printf("Epoch time: %ld\n", epoch_time);
 
     // Build query string for callsign packet from wspr.live
 	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT * FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),argv[1]);
@@ -224,6 +231,8 @@ int main(int argc, char *argv[]) {
 
 	curl_easy_cleanup(curl);      //only do after ALL your curling is done
 	curl_global_cleanup();
+	fprintf(log_file,"\n\n");
+	fclose(log_file);
     return 0;
 }
 

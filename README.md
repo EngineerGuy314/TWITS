@@ -18,7 +18,7 @@ example crontab setup: `crontab -e`
 
 `*/5 * * * * /home/USERNAME/TWITS/twits.exe MyCall 2 Q 9 "Comment Goes Here" "Detail goes here"`
 
-2 Q 9 correspond to the starting minute and id1, id3 for channel # 582:
+In the above example: 2 Q 9 correspond to the starting minute and id1, id3 for channel # 582:
 
 ![q](https://github.com/user-attachments/assets/b7c6b9da-4d5e-4699-8208-35be26adce0c)
 

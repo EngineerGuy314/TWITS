@@ -13,7 +13,7 @@ args: callsign, starting minute, id1, id3, [comment], [details]
 
 example crontab setup: `crontab -e`
 
-`*/5 * * * * /home/USERNAME/twits/twits.exe MyCall 2 Q 9 "Comment Goes Here" "Detail goes here"`
+`*/5 * * * * /home/USERNAME/TWITS/twits.exe MyCall 2 Q 9 "Comment Goes Here" "Detail goes here"`
 
 2 Q 9 correspond to the starting minute and id1, id3 for channel # 582:
 

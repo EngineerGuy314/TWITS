@@ -25,6 +25,7 @@ char _telem_callsign[7];
 int _telem_power;
 char _telem_grid[5];
 int altitude;
+int packet_count=0;
 char grid5;
 char grid6;
 char grid[7]; 
@@ -72,7 +73,9 @@ void process_1st_packet(void)
 {
 	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to just open and read the file anyway? Fah-Q, thats why.
 	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
-		printf("response to 1st was EMPTY!\n");
+		fprintf(log_file,"Response to 2nd query was empty\n");
+	else
+	packet_count+=1;
 	
 	fprintf(log_file,"response to first packet was: %s",site_response);
 
@@ -97,8 +100,13 @@ void process_2nd_packet(void)
 {
 	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to open and read the file anyway? Fuck you, thats why.
 	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
-		printf("response to 2nd was EMPTY!\n");	
-	fprintf(log_file,"REPONSE TO SECOND:\n %s|n",site_response);
+		fprintf(log_file,"Response to 2nd query was empty\n");
+	else
+	packet_count+=1;
+
+
+
+	fprintf(log_file,"REPONSE TO SECOND:\n %s",site_response);
 
 	char *token;
     int count = 0;
@@ -227,6 +235,7 @@ int main(int argc, char *argv[]) {
 	send_query_and_write_reponse_to_file();	
 	process_2nd_packet();
 	decode_telem_data();    //extracts the encoded info from telemetry packet (grid chars 5,6 and altitude) and converts grid to lat/lon
+if 	(packet_count==2)
 	send_to_sondehub();     // sends via json 
 
 	curl_easy_cleanup(curl);      //only do after ALL your curling is done

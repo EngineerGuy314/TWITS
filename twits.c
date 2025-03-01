@@ -1,5 +1,5 @@
 //to compile:    gcc twits.c -o twits.exe -lcurl
-//args: callsign, starting minute, id1, id3, [comment], [details]
+//args: callsign, starting minute, id1, id3, [comment],[details]
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,6 +112,20 @@ void process_2nd_packet(void)
 	printf("Telem callsign, grid, power: %s %s %d\n",_telem_callsign,_telem_grid,_telem_power);
 	fclose(fp);
 }
+//************************************************************
+
+void maidenhead_to_latlon(const char *grid, double *lat, double *lon) {
+    // Convert Maidenhead grid to lat/lon
+    int field_lon = toupper(grid[0]) - 'A';
+    int field_lat = toupper(grid[1]) - 'A';
+    int square_lon = grid[2] - '0';
+    int square_lat = grid[3] - '0';
+    int subsquare_lon = toupper(grid[4]) - 'A';
+    int subsquare_lat = toupper(grid[5]) - 'A';
+    // Compute latitude and longitude
+    *lon = (field_lon * 20.0) + (square_lon * 2.0) + ((subsquare_lon * (2.0 / 24.0))+( (1.0/24.0))) - 180.0;
+    *lat = (field_lat * 10.0) + (square_lat * 1.0) + (subsquare_lat * (1.0 / 24.0))+(1.0/48.0)  - 90.0;
+}
 //******************************************************************************
 
 void 	decode_telem_data(void)  //input: callsign (not including char 0 and 2), outputs: grid56 ,altitude, (only doing one of the 32 bit words)
@@ -184,20 +198,7 @@ void send_to_sondehub(void)  //via json payload
     res = curl_easy_perform(curl);
 
 }
-//************************************************************
 
-void maidenhead_to_latlon(const char *grid, double *lat, double *lon) {
-    // Convert Maidenhead grid to lat/lon
-    int field_lon = toupper(grid[0]) - 'A';
-    int field_lat = toupper(grid[1]) - 'A';
-    int square_lon = grid[2] - '0';
-    int square_lat = grid[3] - '0';
-    int subsquare_lon = toupper(grid[4]) - 'A';
-    int subsquare_lat = toupper(grid[5]) - 'A';
-    // Compute latitude and longitude
-    *lon = (field_lon * 20.0) + (square_lon * 2.0) + ((subsquare_lon * (2.0 / 24.0))+( (1.0/24.0))) - 180.0;
-    *lat = (field_lat * 10.0) + (square_lat * 1.0) + (subsquare_lat * (1.0 / 24.0))+(1.0/48.0)  - 90.0;
-}
 //***************************************************************************
 int main(int argc, char *argv[]) {
 	curl = curl_easy_init();

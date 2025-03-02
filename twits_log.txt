@@ -1,0 +1,11 @@
+epoch: 1740862033 arg count: 7, callsio: KC3IBR arg 2 start minute: 8 arg3 id1: 1 arg4 id3: 6
+Query string: db1.wspr.live/?query=SELECT * FROM wspr.rx WHERE (band='14') AND (time >1740832033) AND (tx_sign LIKE 'KC3IBR') ORDER BY time DESC LIMIT 1 and len: 138
+response to first packet was: 9501926596	2025-03-01 19:28:00	14	KC3LBR	40.271	-75.375	FN20hg	KC3IBR	40.271	-75.375	FN20hg	37	51	0	14097130	10	1	-1	2.6.1	1
+Parsing of 1st packet reveals: uploader: KC3LBR and regular callsign (already known i hope): KC3IBR and the grid: FN20
+Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1740832033) AND (stime LIKE '____-__-__ __%3A_0%25') AND (tx_sign LIKE '1_6%25') ORDER BY time DESC LIMIT 1 and len: 254
+REPONSE TO SECOND:
+ 2025-03-01 19:30:00	14	1A6OXL	PH46	-13.521	128.958	43	2025-03-01 19:30:00
+Telem callsign, grid, power: 1A6OXL PH46 43
+Jason Payload is: [{"software_name":"twits","software_version":"0.9","datetime":"2025-03-01T20:47:13.534Z","comment":"comms 2 here","detail":"deets 2 here","uploader_callsign":"KC3LBR","payload_callsign":"KC3IBR","lat":40.270833,"lon":-75.375000,"alt":20}]
+
+

@@ -35,7 +35,7 @@ char _uploader[7];
 char detail[100];
 char comment[100];
 
-#define SECONDS_TO_LOOK_BACK 30000
+#define SECONDS_TO_LOOK_BACK 1200
 
 //****************************************************************************************
 void replace_spaces(const char *input, char *output) {
@@ -73,7 +73,7 @@ void process_1st_packet(void)
 {
 	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to just open and read the file anyway? Fah-Q, thats why.
 	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
-		fprintf(log_file,"Response to 2nd query was empty\n");
+		fprintf(log_file,"Response to 1st query was empty\n");
 	else
 	packet_count+=1;
 	

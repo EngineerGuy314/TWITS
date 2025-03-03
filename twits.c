@@ -35,7 +35,7 @@ char _uploader[7];
 char detail[100];
 char comment[100];
 
-#define SECONDS_TO_LOOK_BACK 1200
+#define SECONDS_TO_LOOK_BACK 600
 
 //****************************************************************************************
 void replace_spaces(const char *input, char *output) {

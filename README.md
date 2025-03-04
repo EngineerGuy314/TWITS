@@ -1,11 +1,11 @@
 # TWITS
 "Trivial WSPR Information To Sondehub"
 
-A simple program to extract pico-balloon flight data from wspr.live and send it to the Sondehub database. It is intended to be run periodically from a cron job. The cron setup passes your flight's callsign and relevant channel information as arguments to the program. For tracking multiple flights simply create multiple cron jobs with the appropriate flight info for each**.
+A simple program to extract pico-balloon flight data from wspr.live and send it to the Sondehub database. It is intended to be run periodically from a cron job. The cron setup passes your flight's callsign and relevant channel information as arguments to the program. For tracking multiple flights simply add multiple instances to the crontab**.
 
-My goal was to make the program simple, straightforward and self contained. It is not reliant on 3rd party libraries, external frameworks or other runtime-environments. Specifically intended to run on embedded devices such as a wireless router running OpenWRT.
+My goal was to make the program simple, straightforward and self contained. It is not reliant on  any external frameworks or other runtime-environments. Specifically intended to run on embedded devices such as an OpenWRT based wireless router.
 
-There is very little along the lines of error checking. Use at your own risk.
+There is very little along the lines of error checking though, so use at your own risk.
 
 to compile:    `gcc twits.c -o twits.exe -lcurl`
 

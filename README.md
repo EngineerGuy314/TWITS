@@ -24,9 +24,8 @@ In the above example: 2 Q 9 correspond to the starting minute and id1, id3 for c
 
 
 **
-if running multiple instances, offset the call times in crontab so they don't interfere with each other:
-`*/5 * * * * /home/user/TWITS/twits.exe CALLSIGN 6 0 3 
-1-59/5 * * * * /home/user/TWITS/twits.exe CALLSIGN 8 1 6 `
+if running multiple instances (tracking multiple balloons), add them to the crontab separated by double ampersands: 
+`*/5 * * * * /home/user/TWITS/twits.exe CALLSIGN 6 0 3 && /home/user/TWITS/twits.exe CALLSIGN 8 1 6 `
 
 
 

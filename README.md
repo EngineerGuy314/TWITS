@@ -12,6 +12,7 @@ There is very little along the lines of error checking though, so use at your ow
 to compile:    `gcc twits.c -o twits.exe -lcurl`
 
 if needed, install libcurl, something like this:  `sudo apt-get update && sudo apt install libcurl4`
+the program probably isn't threadsafe, so the && makes sure that one instance completes before the next is executed.
 
 
 Call the program as a cron job, with these arguments: callsign, starting minute, id1, id3, [comment], [details]

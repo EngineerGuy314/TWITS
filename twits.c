@@ -1,3 +1,6 @@
+// this should been kicked out as non standard: 0W3JIH EM79 23
+
+
 //to compile:    gcc twits.c -o twits.exe -lcurl
 //args: callsign, starting minute, id1, id3, [comment],[details]
 
@@ -34,6 +37,13 @@ char payload_suffix[5];
 char _uploader[7];
 char detail[100];
 char comment[100];
+int basic_telem_bit;
+int bit1;
+int _knots;
+int _volts;
+int _temp;
+
+
 
 #define SECONDS_TO_LOOK_BACK 600
 
@@ -125,7 +135,7 @@ void maidenhead_to_latlon(const char *grid, double *lat, double *lon) {
 }
 //******************************************************************************
 
-void 	decode_telem_data(void)  //input: callsign (not including char 0 and 2), outputs: grid56 ,altitude, (only doing one of the 32 bit words)
+void 	decode_telem_data(void)  //input: callsign (not including char 0 and 2), outputs: grid56 ,altitude, (1st of the 32 bit words)
 {
 uint32_t _32_bits;
 
@@ -134,17 +144,45 @@ int v2= _telem_callsign[3]-'A';
 int v3= _telem_callsign[4]-'A'; 
 int v4= _telem_callsign[5]-'A'; 
 
-_32_bits=v1; 
+_32_bits=v1;                                     //pack
 _32_bits *= 26;_32_bits+=v2; 
 _32_bits *= 26;_32_bits+=v3; 
 _32_bits *= 26;_32_bits+=v4; 
 
-altitude=20*(_32_bits%1068);  _32_bits=_32_bits/1068;
+altitude=20*(_32_bits%1068);  _32_bits=_32_bits/1068;    //unpack
 grid6='A'+(_32_bits%24); _32_bits=_32_bits/24;
 grid5='A'+(_32_bits%24);
-
 snprintf(grid, 7,"%s%c%c",_4chargrid,grid5,grid6);
+		fprintf(log_file,"Result of DECODE: alt: %d grid56: %c%c ",altitude,grid5,grid6);
 maidenhead_to_latlon(grid, &lat, &lon);	
+
+//input: callsign (4 char grid and power), outputs: bits, speed, volts, temp, (2nd of the 32 bit words)
+//_telem_grid ( 4 chars, 2 letts two nums) ,_telem_power  _telem_power_CONVERTED(int)
+  int _telem_power_CONVERTED;
+  const int8_t valid_dbm[19] = { 0, 3, 7, 10, 13, 17, 20, 23, 27, 30, 33, 37, 40, 43, 47, 50, 53, 57, 60};
+  for(int i = 0; i < 19; i++)
+  {
+    if(_telem_power == valid_dbm[i])
+    {
+      _telem_power_CONVERTED=i;
+    }
+  }
+  
+		         _32_bits=_telem_grid[0]-'A';   //pack
+_32_bits *= 18;	_32_bits+=_telem_grid[1]-'A';	
+_32_bits *= 10;	_32_bits+=_telem_grid[2]-'0';	
+_32_bits *= 10;	_32_bits+=_telem_grid[3]-'0';	
+_32_bits *= 19;	_32_bits+=_telem_power_CONVERTED;	
+
+basic_telem_bit=_32_bits%2;_32_bits=_32_bits/2;//telem bit           //unpack
+bit1=_32_bits%2;_32_bits=_32_bits/2;//gps valid_bit
+_knots=_32_bits%42;_32_bits=_32_bits/42;
+_volts=_32_bits%40;_32_bits=_32_bits/40;
+_temp=(_32_bits%90)-50;
+
+						fprintf(log_file,"basic_telem_bit:%d  bit1:%d  knots:%d volts:%d  temp:%d   ",basic_telem_bit,bit1,_knots,_volts,_temp);
+						fprintf(log_file," raw telem power of %d normalized to %d\n",_telem_power,_telem_power_CONVERTED);
+
 }
 ////********************************
 void get_iso_utc_time(char *buffer, size_t size) {
@@ -219,12 +257,21 @@ int main(int argc, char *argv[]) {
 	send_SQL_query();	
 	process_2nd_packet();
 	decode_telem_data();    //extracts the encoded info from telemetry packet (grid chars 5,6 and altitude) and converts grid to lat/lon
-	if 	(packet_count==2)
+	if 	((packet_count==2)&&(basic_telem_bit==1))   //only if you received two packets AND the 2nd packet was basic telem (not someone else's Extended Telem)
 		send_to_sondehub();     // send to Sondehub via json payload
 
 	curl_easy_cleanup(curl);      //only do after ALL your curling is done
 	curl_global_cleanup();
 	fprintf(log_file,"\n\n");
+		/*snprintf(_telem_callsign,7,"0W3JIH");
+		snprintf(_telem_grid,5,"EM79");
+		_telem_power=23;
+		snprintf(_telem_callsign,7,"0F3JBE");
+		snprintf(_telem_grid,5,"BH83");
+		_telem_power=20;
+		fprintf(log_file,"Telem callsign, grid, power: %s %s %d\n",_telem_callsign,_telem_grid,_telem_power);
+		decode_telem_data();
+		*/
 	fclose(log_file);
     return 0;
 }

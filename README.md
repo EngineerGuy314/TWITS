@@ -12,7 +12,7 @@ There is very little along the lines of error checking though, so use at your ow
 to compile:    `gcc twits.c -o twits.exe -lcurl`
 
 if needed, install libcurl, something like this:  `sudo apt-get update && sudo apt install libcurl4`
-the program probably isn't threadsafe, so the && makes sure that one instance completes before the next is executed.
+
 
 
 Call the program as a cron job, with these arguments: callsign, starting minute, id1, id3, [comment], [details]
@@ -29,7 +29,7 @@ In the above example: 2 Q 9 correspond to the starting minute and id1, id3 for c
 **
 if running multiple instances (tracking multiple balloons), add them to the crontab separated by double ampersands: 
 `*/5 * * * * /home/user/TWITS/twits.exe CALLSIGN 6 0 3 && /home/user/TWITS/twits.exe CALLSIGN 8 1 6 `
-
+The program probably isn't threadsafe, so the && makes sure that one instance completes before the next is executed.
 
 
 

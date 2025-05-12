@@ -6,11 +6,19 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <time.h>
 #include <ctype.h>
 #include <curl/curl.h>
 #include <unistd.h> 
 #include <sys/time.h>  
+#include <sys/file.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>  // <-- Needed for stat()
+
+#define LOGFILE_PATH "twits_log.txt"
 
 time_t epoch_time;
 char query_raw[350];
@@ -40,6 +48,8 @@ int bit1;
 int _knots;
 int _volts;
 int _temp;
+int was_spinlocked=0;
+int fd;
 
 
 
@@ -202,7 +212,7 @@ void send_to_sondehub(void)  //via json payload
 
 	snprintf(json_payload, 500,"[{"
     "\"software_name\":\"TWITS https://github.com/EngineerGuy314/TWITS\","
-    "\"software_version\":\"0.91\","
+    "\"software_version\":\"0.91Z with SL and one cron\","
 	"\"modulation\":\"WSPR\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
@@ -232,14 +242,41 @@ void send_to_sondehub(void)  //via json payload
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     res = curl_easy_perform(curl);
 }
+//***************************************************************************
+void init(void) {
+	
+	const char *lockfile = "/tmp/mylockfile.lock";              //spin lock if called more than once
+    fd = open(lockfile, O_CREAT | O_RDWR, 0666);
+    // Spinlock: keep trying to get the lock
+    while (flock(fd, LOCK_EX | LOCK_NB) != 0) {
+        // Lock is held by another process; sleep briefly to avoid busy wait
+		was_spinlocked=1;
+        usleep(100000); // 100 ms
+    }
+	
+	
+    struct stat st;
+
+    // Check if logfile exists and its size
+    if (stat(LOGFILE_PATH, &st) == 0) {
+        if (st.st_size >= 2000000) {  //max 2MB logfile
+            if (remove(LOGFILE_PATH) != 0) {
+                perror("Failed to delete oversized log file");
+            }
+        }
+    }
+	
+	log_file = fopen(LOGFILE_PATH,"a");  
+	
+}
 
 //***************************************************************************
 int main(int argc, char *argv[]) {
-	log_file = fopen("twits_log.txt","a");  
+	init(); //some boring stuff
 	epoch_time = time(NULL); 
 	curl = curl_easy_init();
 				printf("arg count: %d, callsio: %s arg 2 start minute: %s arg3 id1: %s arg4 id3: %s\n",argc,argv[1],argv[2],argv[3],argv[4]); //callsign, minute, id1, id3
-				fprintf(log_file, "epoch: %d arg count: %d, callsio: %s arg 2 start minute: %s arg3 id1: %s arg4 id3: %s\n",epoch_time,argc,argv[1],argv[2],argv[3],argv[4]); 
+				fprintf(log_file, "epoch: %d arg count: %d, callsio: %s arg 2 start minute: %s arg3 id1: %s arg4 id3: %s SpinLock: %d\n",epoch_time,argc,argv[1],argv[2],argv[3],argv[4],was_spinlocked); 
 	snprintf(callsign, 7, "%s",argv[1]);
 	snprintf(payload_suffix, 5, "-%s%s%s",argv[2],argv[3],argv[4]);
 	if (argc >5) snprintf(comment,99,"%s",argv[5]); else  snprintf(comment,99,"generic comment");
@@ -272,5 +309,6 @@ int main(int argc, char *argv[]) {
 		decode_telem_data();
 		*/
 	fclose(log_file);
+	close(fd);  //close lockfile
     return 0;
 }

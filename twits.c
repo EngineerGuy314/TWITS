@@ -1,5 +1,3 @@
-// this should been kicked out as non standard: 0W3JIH EM79 23
-
 
 //to compile:    gcc twits.c -o twits.exe -lcurl
 //args: callsign, starting minute, id1, id3, [comment],[details]
@@ -203,8 +201,9 @@ void send_to_sondehub(void)  //via json payload
 	char json_payload[501];
 
 	snprintf(json_payload, 500,"[{"
-    "\"software_name\":\"twits\","
-    "\"software_version\":\"0.9\","
+    "\"software_name\":\"TWITS https://github.com/EngineerGuy314/TWITS\","
+    "\"software_version\":\"0.91\","
+	"\"modulation\":\"WSPR\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
 	"\"detail\":\"%s\","

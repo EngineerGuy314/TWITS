@@ -1,6 +1,18 @@
+//STICK WITH WSPRLIVE!
+//MAYBE DONE??  i do already pull gets _knots,_volts,_temp from basic telem, but not reporting to sondehub ye
+// Will need to add frequency binning for telems!!
+//finish 3rd packet recoding
+// also extract minutes since GPS etc)
+
+//may need to increase calling freuqncy to make sure you see all 3 packets?
+
+
+
+
+
 
 //to compile:    gcc twits.c -o twits.exe -lcurl
-//args: callsign, U4B_type_channel, comment, details, [ExtendedPrecisionTelemetry-enable]
+//args: callsign, starting minute, id1, id3, [comment],[details]
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,8 +33,8 @@
 #define LOGFILE_PATH "twits_log.txt"
 
 time_t epoch_time;
-char query_raw[450];           //will cause segflt if too small (should prolly make dynamic)
-char query_stringified[450];
+char query_raw[350];
+char query_stringified[350];
 FILE *fp;
 FILE *log_file;
 CURL *curl;
@@ -36,13 +48,11 @@ int altitude;
 int packet_count=0;
 char grid5;
 char grid6;
-int grid7; //base 10 //last 4 only used for extended telem of special type
-int grid8; //base 10 
-int grid9; //base 24
-int grid10; //base 24
-int mins_since_boot;
-int mins_since_lock;
-char _6_char_grid[7]; 
+char grid7; //last 4 only used for extended telem of special type
+char grid8;
+char grid9;
+char grid10;
+char grid[7]; 
 double lat, lon;
 char callsign[7];
 char payload_suffix[5];
@@ -65,9 +75,7 @@ int start_minute_of_packet;
 int _1st_pak_found;
 int _2nd_pak_found;
 int _3rd_pak_found;
-int _freq;
-int low_freq_limit;
-int high_freq_limit;
+
 
 #define SECONDS_TO_LOOK_BACK 600
 //***************************************************************************
@@ -88,12 +96,13 @@ void init(void) {
     if (stat(LOGFILE_PATH, &st) == 0) {
         if (st.st_size >= 2000000) {  //max 2MB logfile
             if (remove(LOGFILE_PATH) != 0) {
-				printf("spinlock delete error\n");
-	}
+                perror("Failed to delete oversized log file");
+            }
         }
     }
 	
 	log_file = fopen(LOGFILE_PATH,"a");  
+
 
 	_1st_pak_found=0;
 	_2nd_pak_found=0;
@@ -115,21 +124,6 @@ void maidenhead_to_latlon(const char *grid, double *lat, double *lon) {
     *lat = (field_lat * 10.0) + (square_lat * 1.0) + (subsquare_lat * (1.0 / 24.0))+(1.0/48.0)  - 90.0;
 }
 
-//************************************************************
-
-void ten_char_maidenhead_to_latlon(const char *grid, int c7, int c8, int c9, int c10, double *lat, double *lon) {
-    // Convert Maidenhead grid to lat/lon
-    int field_lon = toupper(grid[0]) - 'A';
-    int field_lat = toupper(grid[1]) - 'A';
-    int square_lon = grid[2] - '0';
-    int square_lat = grid[3] - '0';
-    int subsquare_lon = toupper(grid[4]) - 'A';
-    int subsquare_lat = toupper(grid[5]) - 'A';
-    // Compute latitude and longitude
-    *lon = (field_lon * 20.0) + (square_lon * 2.0) + (subsquare_lon * (2.0 / 24.0))   + (c7*(2/240.0)) + (c9*(2/(240.0*24.0)))  +(1/(240.0*24.0))     - 180.0;
-    *lat = (field_lat * 10.0) + (square_lat * 1.0) + (subsquare_lat * (1.0 / 24.0))   + (c8*(1/240.0)) + (c10*(1/(240.0*24.0)))  +(1/(240.0*48.0))     - 90.0;
-}
-
 //****************************************************************************************
 void replace_spaces(const char *input, char *output) {
     while (*input) {
@@ -149,7 +143,7 @@ void replace_spaces(const char *input, char *output) {
 void send_SQL_query(void)  //formats and sends (as a simple HTTP request) the contents of query_raw: which includes the url and query info. Response is written to curl_response.tmp
 {
 	replace_spaces(query_raw,query_stringified);
-				fprintf(log_file,"Query string: %s and len: %d\n",query_raw, strlen(query_raw));
+				fprintf(log_file,"Query string: %s and len: %ld\n",query_raw, strlen(query_raw));
 	fp = fopen("curl_response.tmp","wb");  //wb=write binary: overwrites and creates if neeed. 
 	curl_easy_setopt(curl, CURLOPT_URL, query_stringified);   
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA,fp);   //if you DONT do this, it will send the output to stdio instead of this file. have to go to a file, and then read the file. Silly, why not go straight to a char array variable? because thats more complicated and needs callback etc.
@@ -255,8 +249,9 @@ _32_bits *= 26;_32_bits+=v4;
 altitude=20*(_32_bits%1068);  _32_bits=_32_bits/1068;    //unpack
 grid6='A'+(_32_bits%24); _32_bits=_32_bits/24;
 grid5='A'+(_32_bits%24);
-snprintf(_6_char_grid, 7,"%s%c%c",_4chargrid,grid5,grid6);
+snprintf(grid, 7,"%s%c%c",_4chargrid,grid5,grid6);
 		fprintf(log_file,"Result of 2nd DECODE: alt: %d grid56: %c%c ",altitude,grid5,grid6);
+maidenhead_to_latlon(grid, &lat, &lon);	
 
 //input: 4 char grid and power, outputs: bits, speed, volts, temp, (2nd of the 32 bit words)
 //_telem_grid ( 4 chars, 2 letts two nums) ,_telem_power  _telem_power_CONVERTED(int)
@@ -284,11 +279,12 @@ _temp=(_32_bits%90)-50;
 
 						fprintf(log_file,"(2nd pak) basic_telem_bit:%d  bit1:%d  knots:%d volts:%d  temp:%d   ",basic_telem_bit,bit1,_knots,_volts,_temp);
 						fprintf(log_file,"(2nd pak)  raw telem power of %d normalized to %d\n",_telem_power,_telem_power_CONVERTED);
+
 }
 
 //******************************************************************************
 
-void 	decode_extended_telem_data(void)  //input: callsign (not including char 0 and 2), grid and power , outputs: grid7,8,9,10 minutes ince boot and gps lock
+void 	decode_extended_telem_data(void)  //input: callsign (not including char 0 and 2) 4 char grid and power), 
 {
 uint64_t _64_bits;
 
@@ -305,26 +301,41 @@ int v2= _telem_callsign[3]-'A';
 int v3= _telem_callsign[4]-'A'; 
 int v4= _telem_callsign[5]-'A'; 
 
-			   _64_bits=v1;                         //pack
+_64_bits=v1;                                     //pack
 _64_bits *= 26;_64_bits+=v2; 
 _64_bits *= 26;_64_bits+=v3; 
 _64_bits *= 26;_64_bits+=v4; 
-_64_bits *= 18; _64_bits+=_telem_grid[0]-'A';   		//btw, first two chars have range of 18, but chars 5,6 have range of 24. wikiepdia suggest  9,10 probably also base 24 "The fifth and subsequent pairs are not formally defined, but recursing to the third and fourth pair algorithms is a possibility"
+_64_bits *= 18; _64_bits+=_telem_grid[0]-'A';   //pack  (btw, first two chars have range of 18, but chars 5,6 have range of 24. wikiepdia suggest  9,10 prolly base 24 "The fifth and subsequent pairs are not formally defined, but recursing to the third and fourth pair algorithms is a possibility"
 _64_bits *= 18;	_64_bits+=_telem_grid[1]-'A';	
 _64_bits *= 10;	_64_bits+=_telem_grid[2]-'0';	
 _64_bits *= 10;	_64_bits+=_telem_grid[3]-'0';	
 _64_bits *= 19;	_64_bits+=_telem_power_CONVERTED;	
+			
 
-grid7=_64_bits%10;  _64_bits=_64_bits/10;           //unpack
-grid8=_64_bits%10;  _64_bits=_64_bits/10;    
-grid9=_64_bits%24;  _64_bits=_64_bits/24;    
-grid10=_64_bits%24;  _64_bits=_64_bits/24;    
-mins_since_boot=10*(_64_bits%1001);  _64_bits=_64_bits/1001;    
-mins_since_lock=10*(_64_bits%1001);  _64_bits=_64_bits/1001;    
 
-//theoretically you decode further to get header bits ?
 
-						fprintf(log_file,"Result of 3rd packer DECODE: grid7: %d grid8: %d grid9: %d grid10: %d since_boot %d  since_gps %d  ",grid7,grid8,grid9,grid10,mins_since_boot,mins_since_lock);
+
+
+
+
+			
+altitude=20*(_64_bits%1068);  _64_bits=_64_bits/1068;    //unpack
+grid6='A'+(_64_bits%24); _64_bits=_64_bits/24; 
+grid5='A'+(_64_bits%24);
+snprintf(grid, 7,"%s%c%c",_4chargrid,grid5,grid6);
+		fprintf(log_file,"Result of NON FINISHED 3rd packer DECODE: alt: %d grid56: %c%c ",altitude,grid5,grid6);
+ 
+ eh ehe he!!!            maidenhead_to_latlon(grid, &lat, &lon);	
+
+
+/* BAD BOY !!! NOT HERE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!basic_telem_bit=_64_bits%2;_64_bits=_64_bits/2;//telem bit           //unpack
+bit1=_64_bits%2;_64_bits=_64_bits/2;//gps valid_bit
+_knots=_64_bits%42;_64_bits=_64_bits/42;
+_volts=_64_bits%40;_64_bits=_64_bits/40;
+_temp=(_64_bits%90)-50;
+*/
+						fprintf(log_file,"(non working 3rd decode) basic_telem_bit:%d  bit1:%d  knots:%d volts:%d  temp:%d   ",basic_telem_bit,bit1,_knots,_volts,_temp);
+						fprintf(log_file," (non working 3rd decode) raw telem power of %d normalized to %d\n",_telem_power,_telem_power_CONVERTED);
 
 }
 
@@ -343,11 +354,12 @@ void send_to_sondehub(void)  //via json payload
 	const char *url = "http://api.v2.sondehub.org/amateur/telemetry";
 	char datetime[30];
     get_iso_utc_time(datetime, sizeof(datetime));
-	char json_payload[701];
 
-	snprintf(json_payload, 700,"[{"
+	char json_payload[501];
+
+	snprintf(json_payload, 500,"[{"
     "\"software_name\":\"TWITS github.com/EngineerGuy314/TWITS\","
-    "\"software_version\":\"1.9 may15_2025\","
+    "\"software_version\":\"1.4 may15_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
@@ -356,15 +368,16 @@ void send_to_sondehub(void)  //via json payload
     "\"payload_callsign\":\"%s%s\","
     "\"lat\":%f,"
     "\"lon\":%f,"
-    "\"alt\":%d,"
-	"\"sats\":%d,"
-	"\"temp\":%d,"
+    "\"alt\":%d"
+	"\"gps\":%d"
+	"\"temp\":%d"
 	"\"batt\":%f"
-    "}]",datetime,comment,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,_knots,_temp,2+(((_volts*5)+200)/(float)100));           
+    "}]",datetime,comment,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,(_knots/2),_temp,_volts);           
 
 				fprintf(log_file,"Jason Payload is: %s\n",json_payload);
 
-		struct curl_slist *headers = NULL;	      
+		struct curl_slist *headers = NULL;	
+       
         headers = curl_slist_append(headers, "Accept: text/plain" );
         headers = curl_slist_append(headers, "Content-Type: application/json");
         headers = curl_slist_append(headers, "User-Agent: axios/1.7.9");
@@ -377,7 +390,6 @@ void send_to_sondehub(void)  //via json payload
 	curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); 
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     res = curl_easy_perform(curl);
-	fprintf(log_file,"results from curl put  was %s\n",res);
 }
 //***************************************************************************
 int main(int argc, char *argv[]) {
@@ -387,29 +399,22 @@ int main(int argc, char *argv[]) {
 											printf("arg count: %d, callsio: %s arg 2 channel: %s arg3 comment: %s arg4 detail: %s Extened_telem_type %s\n",argc,argv[1],argv[2],argv[3],argv[4],argv[5]);
 											fprintf(log_file,"arg count: %d, callsio: %s arg 2 channel: %s arg3 comment: %s arg4 detail: %s Extened_telem_type %s\n",argc,argv[1],argv[2],argv[3],argv[4],argv[5]);
 											if (argc!=6) fprintf(log_file,"NOT ENOUGH ARGUMENTS! need 6 got %d\n",argc);
-	if (argc>=6) 
+if (argc>=6) 
 		_extended_telem=atoi(argv[5]);
 	else
 		_extended_telem=0;
 	int chan_num=atoi(argv[2]);   //convert chan # to minute, id13 and lane
-	_id1[0]='1';
-	if  (chan_num<200) _id1[0]='0';
-	if  (chan_num>399) _id1[0]='Q';
-	int id3 = (chan_num % 200) / 20;
-	_id3[0]=id3+'0';		
-	_freq_lane = 1+((chan_num % 20)/5);   //1-4
-	_start_minute[0] = '0' + (2*(((chan_num % 5)+14)%5));
+		_id1[0]='1';
+		if  (chan_num<200) _id1[0]='0';
+		if  (chan_num>399) _id1[0]='Q';
+		int id3 = (chan_num % 200) / 20;
+		_id3[0]=id3+'0';		
+		_freq_lane = 1+((chan_num % 20)/5);   //1-4
+		_start_minute[0] = '0' + (2*(((chan_num % 5)+14)%5));
 	_start_minute[1]=0;_id1[1]=0;_id3[1]=0;  //null terminations
+	
 
-	 switch(_freq_lane)   //set limits for bin-ing of telemetry
-		{
-		case 1: low_freq_limit=14097000; high_freq_limit=14097040; break;    
-		case 2: low_freq_limit=14097040; high_freq_limit=14097080; break; 
-		case 3: low_freq_limit=14097120; high_freq_limit=14097160; break; 
-		case 4: low_freq_limit=14097160; high_freq_limit=14097200; break; 
-		}
-
-											fprintf(log_file, "epoch: %d arg count: %d, callsio: %s start minute: %s  id1: %s id3: %s SpinLock: %d channel as integer: %d freq lane: %d low/high freq limits %d %d\n",epoch_time,argc,argv[1],_start_minute,_id1,_id3,was_spinlocked,chan_num,_freq_lane,low_freq_limit,high_freq_limit); 
+											fprintf(log_file, "epoch: %d arg count: %d, callsio: %s start minute: %s  id1: %s id3: %s SpinLock: %d channel as integer: %d freq lane: %d\n",epoch_time,argc,argv[1],_start_minute,_id1,_id3,was_spinlocked,chan_num,_freq_lane); 
 	snprintf(callsign, 7, "%s",argv[1]);
 	snprintf(payload_suffix, 5, "-%s",argv[2]);  //normally suffix is chann #
 	snprintf(comment,99,"%s",argv[3]);
@@ -417,28 +422,28 @@ int main(int argc, char *argv[]) {
 
     // Build query string for callsign packet from wspr.live
 	start_minute_of_packet = atoi(_start_minute);
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime, frequency FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,argv[1],low_freq_limit,high_freq_limit);
+	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,argv[1]);
 	send_SQL_query();
 	process_1st_packet();    //extracts _uploader and _4chargrid
 	
     // Build query string for telemetry packet from wspr.live
 	start_minute_of_packet = (atoi(_start_minute)+2)%10;
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
+	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3);
 	send_SQL_query();	
 	process_2nd_packet();    //extracts _telem_callsign _telem_grid and _telem_power
 	decode_telem_data();    //unpacks the encoded info from telemetry packet (into grid chars 5,6 and altitude) and converts grid to lat/lon. also gets _knots,_volts,_temp
 
    // Build query string for EXTENDED telemetry packet from wspr.live
 	start_minute_of_packet = (atoi(_start_minute)+4)%10;
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
+	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3);
 	send_SQL_query();	
 	process_3rd_packet();       	 //extracts _telem_callsign _telem_grid and _telem_power
 //	decode_extended_telem_data();    // NOT DONE YET - need to undpack additional DEXT info AND combine grid78910 with grid 6 to refine lat/lon
 
+
 		if 	((_1st_pak_found==1)&&(_2nd_pak_found==1)&&(basic_telem_bit==1))   //only if you received two packets AND the 2nd packet was basic telem (not someone else's Extended Telem)
 		{
 			fprintf(log_file,"SENDING TO SOINDEHUB (regular)!! two paks were found and basic_telem was on \n");
-			maidenhead_to_latlon(_6_char_grid, &lat, &lon);	
 			send_to_sondehub();     // send to Sondehub via json payload
 		}
 
@@ -446,14 +451,19 @@ int main(int argc, char *argv[]) {
 		{
 			fprintf(log_file,"SENDING -EXTENDED- TO SOINDEHUB !! Three paks were found and basic_telem was on \n");
 			snprintf(payload_suffix, 6, "-%se",argv[2]);   //appends an 'e' at end of suffix
-			snprintf(detail,50,"extended-telemetry high-res position. mins since boot: %d mins since GPS lock:%d",mins_since_boot,mins_since_lock);        
-			ten_char_maidenhead_to_latlon(_6_char_grid, grid7, grid8, grid9, grid10, &lat, &lon);
-			send_to_sondehub();     
+			snprintf(detail,50,"extended position resolution");                 //for now, say 'extenedd' in detail EVENTUALLY include special DEXT like minutes since boot/GPS minutes
+			lat+=0.001;
+			lon+=0.001;
+			//	decode_extended_telem_data is  NOT DONE YET. this will refine lat lon
+			
+			send_to_sondehub();     // decode_extended_telem_data wil eventually have refined lat/lon for this guy to use
 		}
 
-	curl_easy_cleanup(curl); curl_global_cleanup();
+	curl_easy_cleanup(curl);      //only do after ALL your curling is done
+	curl_global_cleanup();
 	fprintf(log_file,"\n\n");
-	fclose(log_file); close(fd);  //close log and lockfile
+	fclose(log_file);
+	close(fd);  //close lockfile
     return 0;
 }
 

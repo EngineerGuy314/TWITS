@@ -18,7 +18,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>  
 
-#define LOGFILE_PATH "twits_log.txt"
+char LOGFILE_PATH[256];
 
 time_t epoch_time;
 char query_raw[450];           //will cause segflt if too small (should prolly make dynamic)
@@ -47,8 +47,8 @@ double lat, lon;
 char callsign[7];
 char payload_suffix[5];
 char _uploader[7];
-char detail[100];
-char comment[100];
+char detail[120];
+char comment[120];
 int basic_telem_bit;
 int bit1;
 int _knots;
@@ -71,7 +71,7 @@ int high_freq_limit;
 
 #define SECONDS_TO_LOOK_BACK 600
 //***************************************************************************
-void init(void) {
+void init(const char *arg) {
 	
 	printf("about to check for spinlock\n");
 	const char *lockfile = "/tmp/mylockfile.lock";              //spin lock if called more than once
@@ -83,10 +83,13 @@ void init(void) {
         usleep(100000); // 100 ms
     }
 	
+
+    snprintf(LOGFILE_PATH, sizeof(LOGFILE_PATH), "twits_log_ch_%s.txt", arg);  //create a unique logfile for that channel
+	
     struct stat st;                                        //tidy up logfile if its too big
     // Check if logfile exists and its size
     if (stat(LOGFILE_PATH, &st) == 0) {
-        if (st.st_size >= 2000000) {  //max 2MB logfile
+        if (st.st_size >= 4000000) {  //max 4MB logfile
             if (remove(LOGFILE_PATH) != 0) {
 				printf("spinlock delete error\n");
 	}
@@ -150,6 +153,7 @@ void send_SQL_query(void)  //formats and sends (as a simple HTTP request) the co
 {
 	replace_spaces(query_raw,query_stringified);
 				fprintf(log_file,"Query string: %s and len: %d\n",query_raw, strlen(query_raw));
+				fprintf(log_file,"STRINGIFIED: \n%s\r",query_stringified);
 	fp = fopen("curl_response.tmp","wb");  //wb=write binary: overwrites and creates if neeed. 
 	curl_easy_setopt(curl, CURLOPT_URL, query_stringified);   
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA,fp);   //if you DONT do this, it will send the output to stdio instead of this file. have to go to a file, and then read the file. Silly, why not go straight to a char array variable? because thats more complicated and needs callback etc.
@@ -381,12 +385,12 @@ void send_to_sondehub(void)  //via json payload
 }
 //***************************************************************************
 int main(int argc, char *argv[]) {
-	init(); //some boring stuff
+	init(argv[2]); //some boring stuff
 	epoch_time = time(NULL); 
 	curl = curl_easy_init();
 											printf("arg count: %d, callsio: %s arg 2 channel: %s arg3 comment: %s arg4 detail: %s Extened_telem_type %s\n",argc,argv[1],argv[2],argv[3],argv[4],argv[5]);
 											fprintf(log_file,"arg count: %d, callsio: %s arg 2 channel: %s arg3 comment: %s arg4 detail: %s Extened_telem_type %s\n",argc,argv[1],argv[2],argv[3],argv[4],argv[5]);
-											if (argc!=6) fprintf(log_file,"NOT ENOUGH ARGUMENTS! need 6 got %d\n",argc);
+											if (argc!=6) fprintf(log_file,"!! got %d arguments, need 5 or 6!!\n",argc);
 	if (argc>=6) 
 		_extended_telem=atoi(argv[5]);
 	else
@@ -417,7 +421,7 @@ int main(int argc, char *argv[]) {
 
     // Build query string for callsign packet from wspr.live
 	start_minute_of_packet = atoi(_start_minute);
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime, frequency FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,argv[1],low_freq_limit,high_freq_limit);
+	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,argv[1],low_freq_limit,high_freq_limit);
 	send_SQL_query();
 	process_1st_packet();    //extracts _uploader and _4chargrid
 	
@@ -446,7 +450,7 @@ int main(int argc, char *argv[]) {
 		{
 			fprintf(log_file,"SENDING -EXTENDED- TO SOINDEHUB !! Three paks were found and basic_telem was on \n");
 			snprintf(payload_suffix, 6, "-%se",argv[2]);   //appends an 'e' at end of suffix
-			snprintf(detail,50,"extended-telemetry high-res position. mins since boot: %d mins since GPS lock:%d",mins_since_boot,mins_since_lock);        
+			snprintf(detail,100,"ET high-res. mins since boot: %d mins since GPS lock:%d",mins_since_boot,mins_since_lock);        
 			ten_char_maidenhead_to_latlon(_6_char_grid, grid7, grid8, grid9, grid10, &lat, &lon);
 			send_to_sondehub();     
 		}

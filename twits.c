@@ -70,10 +70,17 @@ int low_freq_limit;
 int high_freq_limit;
 
 #define SECONDS_TO_LOOK_BACK 600
+////********************************
+void get_iso_utc_time(char *buffer, size_t size) {
+    struct timeval tv;struct tm *tm_info;gettimeofday(&tv, NULL);tm_info = gmtime(&tv.tv_sec);strftime(buffer, size, "%Y-%m-%dT%H:%M:%S", tm_info);snprintf(buffer + 19, size - 19, ".%03ldZ", tv.tv_usec / 1000); // Add milliseconds
+}
+void get_iso_utc_timeSIMPLE(char *buffer, size_t size) {
+    struct timeval tv;struct tm *tm_info;gettimeofday(&tv, NULL);tm_info = gmtime(&tv.tv_sec);strftime(buffer, size, "%Y-%m-%d %H:%M:%S", tm_info);
+}
 //***************************************************************************
-void init(const char *arg) {
+void init(int argcc, const char *arg) {
 	
-	printf("about to check for spinlock\n");
+																//printf("about to check for spinlock\n");
 	const char *lockfile = "/tmp/mylockfile.lock";              //spin lock if called more than once
     fd = open(lockfile, O_CREAT | O_RDWR, 0666);
     // Spinlock: keep trying to get the lock
@@ -83,25 +90,25 @@ void init(const char *arg) {
         usleep(100000); // 100 ms
     }
 	
-
-    snprintf(LOGFILE_PATH, sizeof(LOGFILE_PATH), "twits_log_ch_%s.txt", arg);  //create a unique logfile for that channel
+    if (argcc>3)                                                               
+		snprintf(LOGFILE_PATH, sizeof(LOGFILE_PATH), "twits_log_ch_%s.txt", arg);  //create a unique logfile for that channel
+	else
+		snprintf(LOGFILE_PATH, sizeof(LOGFILE_PATH), "twits_log_NO_CHAN.txt");
 	
     struct stat st;                                        //tidy up logfile if its too big
     // Check if logfile exists and its size
     if (stat(LOGFILE_PATH, &st) == 0) {
         if (st.st_size >= 4000000) {  //max 4MB logfile
             if (remove(LOGFILE_PATH) != 0) {
-				printf("spinlock delete error\n");
-	}
-        }
-    }
+				printf("spinlock delete error\n");}}}
 	
 	log_file = fopen(LOGFILE_PATH,"a");  
 
-	_1st_pak_found=0;
-	_2nd_pak_found=0;
-	_3rd_pak_found=0;
+	_1st_pak_found=0;_2nd_pak_found=0;_3rd_pak_found=0;
 	
+								char datetime[30];
+								get_iso_utc_timeSIMPLE(datetime, sizeof(datetime));
+								fprintf(log_file,"%s\n",datetime);	
 }
 //************************************************************
 
@@ -152,8 +159,8 @@ void replace_spaces(const char *input, char *output) {
 void send_SQL_query(void)  //formats and sends (as a simple HTTP request) the contents of query_raw: which includes the url and query info. Response is written to curl_response.tmp
 {
 	replace_spaces(query_raw,query_stringified);
-				fprintf(log_file,"Query string: %s and len: %d\n",query_raw, strlen(query_raw));
-				fprintf(log_file,"STRINGIFIED: \n%s\r",query_stringified);
+				fprintf(log_file,"\t\tquery string: %s and len: %d\n",query_raw, strlen(query_raw));
+				fprintf(log_file,"\t\t       stringified: %s\n",query_stringified);
 	fp = fopen("curl_response.tmp","wb");  //wb=write binary: overwrites and creates if neeed. 
 	curl_easy_setopt(curl, CURLOPT_URL, query_stringified);   
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA,fp);   //if you DONT do this, it will send the output to stdio instead of this file. have to go to a file, and then read the file. Silly, why not go straight to a char array variable? because thats more complicated and needs callback etc.
@@ -165,11 +172,11 @@ void process_1st_packet(void)  //parses response to first SQL query (callsign pa
 {
 	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to just open and read the file anyway? Fah-Q, thats why.
 	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
-				fprintf(log_file,"Response to 1st query was empty\n");
+				fprintf(log_file,"\t1st query NO RESPONSE\n");
 	else
 	{
 	_1st_pak_found=1;
-				fprintf(log_file,"response to first packet was: %s",site_response);
+				fprintf(log_file,"1st query response was: %s",site_response);
 	}
     char *token;
     int count = 0;
@@ -182,7 +189,7 @@ void process_1st_packet(void)  //parses response to first SQL query (callsign pa
 		token = strtok(NULL, "\t");
 	}
 	fclose(fp);
-				fprintf(log_file, "Parsing of 1st packet reveals: uploader: %s and regular callsign (already known i hope): %s and the grid: %s\n",_uploader,callsign,_4chargrid);
+				if (_1st_pak_found==1) fprintf(log_file, "1st packet PARSED: uploader: %s and regular callsign (already known i hope): %s and the grid: %s\n",_uploader,callsign,_4chargrid);
 }
 //******************************************************************************
 
@@ -190,11 +197,11 @@ void process_2nd_packet(void)  //parses response to second SQL query (basic tele
 {
 	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to open and read the file anyway? Fah-Q you, thats why.
 	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
-				fprintf(log_file,"Response to 2nd query was empty\n");
+				fprintf(log_file,"\t2nd query  NO RESPONSE\n");
 	else
 	{
 	_2nd_pak_found=1;
-				fprintf(log_file,"REPONSE TO SECOND:\n %s",site_response);
+				fprintf(log_file,"2nd query response was:\n %s",site_response);
 	}			
 	char *token;
     int count = 0;
@@ -207,7 +214,7 @@ void process_2nd_packet(void)  //parses response to second SQL query (basic tele
 		if (count == 7) _telem_power =  atoi(token);        
 		token = strtok(NULL, "\t");         // sets token as a pointer to the NEXT instance of TAB
 	}
-				fprintf(log_file,"(2bd pak) Telem callsign, grid, power: %s %s %d\n",_telem_callsign,_telem_grid,_telem_power);
+				if (_2nd_pak_found==1) fprintf(log_file,"2nd query RAW: Telem callsign:%s , grid:%s , power:%d\n",_telem_callsign,_telem_grid,_telem_power);
 	fclose(fp);
 }
 
@@ -217,11 +224,11 @@ void process_3rd_packet(void)  //parses response to 3rd SQL query (Extended tele
 {
 	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to open and read the file anyway? Fah-Q you, thats why.
 	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
-				fprintf(log_file,"Response to 3rd query was empty\n");
+				fprintf(log_file,"\t3rd query NO RESPONSE\n");
 	else
 	{
 		_3rd_pak_found=1;
-				fprintf(log_file,"RESPONSE TO third query:\n %s",site_response);
+				fprintf(log_file,"3rd query response was:\n %s",site_response);
 	}
 	char *token;
     int count = 0;
@@ -234,7 +241,7 @@ void process_3rd_packet(void)  //parses response to 3rd SQL query (Extended tele
 		if (count == 7) _telem_power =  atoi(token);        
 		token = strtok(NULL, "\t");         // sets token as a pointer to the NEXT instance of TAB
 	}
-				fprintf(log_file,"(3rd packet) Telem callsign, grid, power: %s %s %d\n",_telem_callsign,_telem_grid,_telem_power);
+				if (_3rd_pak_found==1) fprintf(log_file,"3rd query RAW: Telem callsign:%s , grid:%s , power:%d\n",_telem_callsign,_telem_grid,_telem_power);
 	fclose(fp);
 }
 
@@ -242,7 +249,7 @@ void process_3rd_packet(void)  //parses response to 3rd SQL query (Extended tele
 
 //******************************************************************************
 
-void 	decode_telem_data(void)  //input: callsign (not including char 0 and 2), outputs: grid56 ,altitude, (1st of the 32 bit words)
+void decode_telem_data(void)  //input: callsign (not including char 0 and 2), outputs: grid56 ,altitude, (1st of the 32 bit words)
 {
 uint32_t _32_bits;
 
@@ -260,7 +267,7 @@ altitude=20*(_32_bits%1068);  _32_bits=_32_bits/1068;    //unpack
 grid6='A'+(_32_bits%24); _32_bits=_32_bits/24;
 grid5='A'+(_32_bits%24);
 snprintf(_6_char_grid, 7,"%s%c%c",_4chargrid,grid5,grid6);
-		fprintf(log_file,"Result of 2nd DECODE: alt: %d grid56: %c%c ",altitude,grid5,grid6);
+						if (_2nd_pak_found==1) fprintf(log_file,"BASIC-TELEM DECODE: alt: %d grid56: %c%c ",altitude,grid5,grid6);
 
 //input: 4 char grid and power, outputs: bits, speed, volts, temp, (2nd of the 32 bit words)
 //_telem_grid ( 4 chars, 2 letts two nums) ,_telem_power  _telem_power_CONVERTED(int)
@@ -286,8 +293,8 @@ _knots=_32_bits%42;_32_bits=_32_bits/42;
 _volts=_32_bits%40;_32_bits=_32_bits/40;
 _temp=(_32_bits%90)-50;
 
-						fprintf(log_file,"(2nd pak) basic_telem_bit:%d  bit1:%d  knots:%d volts:%d  temp:%d   ",basic_telem_bit,bit1,_knots,_volts,_temp);
-						fprintf(log_file,"(2nd pak)  raw telem power of %d normalized to %d\n",_telem_power,_telem_power_CONVERTED);
+						if (_2nd_pak_found==1) fprintf(log_file,"\t basic_telem_bit:%d  bit1:%d  knots:%d volts:%d  temp:%d",basic_telem_bit,bit1,_knots,_volts,_temp);
+						if (_2nd_pak_found==1) fprintf(log_file," raw telem power of %d normalized to %d\n",_telem_power,_telem_power_CONVERTED);
 }
 
 //******************************************************************************
@@ -328,19 +335,11 @@ mins_since_lock=10*(_64_bits%1001);  _64_bits=_64_bits/1001;
 
 //theoretically you decode further to get header bits ?
 
-						fprintf(log_file,"Result of 3rd packer DECODE: grid7: %d grid8: %d grid9: %d grid10: %d since_boot %d  since_gps %d  ",grid7,grid8,grid9,grid10,mins_since_boot,mins_since_lock);
+						if (_3rd_pak_found==1) fprintf(log_file,"3rd packet DEXT DECODE: grid7: %d grid8: %d grid9: %d grid10: %d since_boot %d  since_gps %d  ",grid7,grid8,grid9,grid10,mins_since_boot,mins_since_lock);
 
 }
 
-////********************************
-void get_iso_utc_time(char *buffer, size_t size) {
-    struct timeval tv;
-    struct tm *tm_info;
-    gettimeofday(&tv, NULL);  // Get current time with microseconds
-    tm_info = gmtime(&tv.tv_sec);  // Convert to UTC
-    strftime(buffer, size, "%Y-%m-%dT%H:%M:%S", tm_info); // Format datetime
-    snprintf(buffer + 19, size - 19, ".%03ldZ", tv.tv_usec / 1000); // Add milliseconds
-}
+
 //***************************************************************************
 void send_to_sondehub(void)  //via json payload
 {
@@ -366,7 +365,7 @@ void send_to_sondehub(void)  //via json payload
 	"\"batt\":%f"
     "}]",datetime,comment,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,_knots,_temp,2+(((_volts*5)+200)/(float)100));           
 
-				fprintf(log_file,"Jason Payload is: %s\n",json_payload);
+												fprintf(log_file,"JASON PAYLOAD to SONDEHUB is: %s\n",json_payload);
 
 		struct curl_slist *headers = NULL;	      
         headers = curl_slist_append(headers, "Accept: text/plain" );
@@ -381,16 +380,15 @@ void send_to_sondehub(void)  //via json payload
 	curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); 
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     res = curl_easy_perform(curl);
-	fprintf(log_file,"results from curl put  was %s\n",res);
+												fprintf(log_file,"\t results from curl put was %s\n",res);
 }
 //***************************************************************************
 int main(int argc, char *argv[]) {
-	init(argv[2]); //some boring stuff
+	init(argc,argv[2]); //some boring stuff
 	epoch_time = time(NULL); 
 	curl = curl_easy_init();
-											printf("arg count: %d, callsio: %s arg 2 channel: %s arg3 comment: %s arg4 detail: %s Extened_telem_type %s\n",argc,argv[1],argv[2],argv[3],argv[4],argv[5]);
-											fprintf(log_file,"arg count: %d, callsio: %s arg 2 channel: %s arg3 comment: %s arg4 detail: %s Extened_telem_type %s\n",argc,argv[1],argv[2],argv[3],argv[4],argv[5]);
-											if (argc!=6) fprintf(log_file,"!! got %d arguments, need 5 or 6!!\n",argc);
+											//printf("arg count: %d, callsio: %s arg 2 channel: %s arg3 comment: %s arg4 detail: %s Extened_telem_type %s\n",argc,argv[1],argv[2],argv[3],argv[4],argv[5]);
+											if (argc<5) fprintf(log_file,"!! got %d arguments, need 5 or 6!!\n",argc);
 	if (argc>=6) 
 		_extended_telem=atoi(argv[5]);
 	else
@@ -413,7 +411,7 @@ int main(int argc, char *argv[]) {
 		case 4: low_freq_limit=14097160; high_freq_limit=14097200; break; 
 		}
 
-											fprintf(log_file, "epoch: %d arg count: %d, callsio: %s start minute: %s  id1: %s id3: %s SpinLock: %d channel as integer: %d freq lane: %d low/high freq limits %d %d\n",epoch_time,argc,argv[1],_start_minute,_id1,_id3,was_spinlocked,chan_num,_freq_lane,low_freq_limit,high_freq_limit); 
+											fprintf(log_file, "\targ count: %d, callsio: %s start minute: %s  id1: %s id3: %s SpinLock: %d channel as integer: %d freq lane: %d low/high freq limits %d %d\n",argc,argv[1],_start_minute,_id1,_id3,was_spinlocked,chan_num,_freq_lane,low_freq_limit,high_freq_limit); 
 	snprintf(callsign, 7, "%s",argv[1]);
 	snprintf(payload_suffix, 5, "-%s",argv[2]);  //normally suffix is chann #
 	snprintf(comment,99,"%s",argv[3]);

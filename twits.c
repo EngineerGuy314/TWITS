@@ -28,6 +28,7 @@ FILE *log_file;
 CURL *curl;
 CURLcode res;
 char site_response[2000];
+char detail_prepend_msg[100];
 char _4chargrid[5];
 char _telem_callsign[7];
 int _telem_power;
@@ -109,6 +110,8 @@ void init(int argcc, const char *arg) {
 								char datetime[30];
 								get_iso_utc_timeSIMPLE(datetime, sizeof(datetime));
 								fprintf(log_file,"%s\n",datetime);	
+								
+	detail_prepend_msg[0]=0;
 }
 //************************************************************
 
@@ -350,11 +353,11 @@ void send_to_sondehub(void)  //via json payload
 
 	snprintf(json_payload, 700,"[{"
     "\"software_name\":\"TWITS github.com/EngineerGuy314/TWITS\","
-    "\"software_version\":\"1.9 may15_2025\","
+    "\"software_version\":\"2.1 may30_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
-	"\"detail\":\"%s\","
+	"\"detail\":\"%s%s\","
     "\"uploader_callsign\":\"%s\","
     "\"payload_callsign\":\"%s%s\","
     "\"lat\":%f,"
@@ -363,7 +366,7 @@ void send_to_sondehub(void)  //via json payload
 	"\"sats\":%d,"
 	"\"temp\":%d,"
 	"\"batt\":%f"
-    "}]",datetime,comment,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,_knots,_temp,2+(((_volts*5)+200)/(float)100));           
+    "}]",datetime,comment,detail_prepend_msg,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,_knots,_temp,2+(((_volts*5)+200)/(float)100));           
 
 												fprintf(log_file,"JASON PAYLOAD to SONDEHUB is: %s\n",json_payload);
 
@@ -428,6 +431,14 @@ int main(int argc, char *argv[]) {
 	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
 	send_SQL_query();	
 	process_2nd_packet();    //extracts _telem_callsign _telem_grid and _telem_power
+		if (_2nd_pak_found==0) //if no match, try again without frequency binning
+		{
+			fprintf(log_file,"\t No 2nd match, trying again without Frequency bin\r");
+			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3);
+			send_SQL_query();	
+			process_2nd_packet();    //extracts _telem_callsign _telem_grid and _telem_power
+			if (_2nd_pak_found==1) strcpy(detail_prepend_msg, "NO FREQ BIN MATCH! ");
+		}
 	decode_telem_data();    //unpacks the encoded info from telemetry packet (into grid chars 5,6 and altitude) and converts grid to lat/lon. also gets _knots,_volts,_temp
 
    // Build query string for EXTENDED telemetry packet from wspr.live
@@ -435,18 +446,18 @@ int main(int argc, char *argv[]) {
 	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
 	send_SQL_query();	
 	process_3rd_packet();       	 //extracts _telem_callsign _telem_grid and _telem_power
-//	decode_extended_telem_data();    // NOT DONE YET - need to undpack additional DEXT info AND combine grid78910 with grid 6 to refine lat/lon
+	decode_extended_telem_data();    // so far only does that one scenario
 
 		if 	((_1st_pak_found==1)&&(_2nd_pak_found==1)&&(basic_telem_bit==1))   //only if you received two packets AND the 2nd packet was basic telem (not someone else's Extended Telem)
 		{
-			fprintf(log_file,"SENDING TO SOINDEHUB (regular)!! two paks were found and basic_telem was on \n");
+			fprintf(log_file,"SENDING TO SONDEHUB (regular)!! two paks were found and basic_telem was on \n");
 			maidenhead_to_latlon(_6_char_grid, &lat, &lon);	
 			send_to_sondehub();     // send to Sondehub via json payload
 		}
 
 		if 	((_1st_pak_found==1)&&(_2nd_pak_found==1)&&(_3rd_pak_found==1)&&(basic_telem_bit==1)&&(_extended_telem==1))   // if you received 3 packets AND the 2nd packet was basic telem AND you have selected extended telem decode
 		{
-			fprintf(log_file,"SENDING -EXTENDED- TO SOINDEHUB !! Three paks were found and basic_telem was on \n");
+			fprintf(log_file,"SENDING -EXTENDED- TO SONDEHUB !! Three paks were found and basic_telem was on \n");
 			snprintf(payload_suffix, 6, "-%se",argv[2]);   //appends an 'e' at end of suffix
 			snprintf(detail,100,"ET high-res. mins since boot: %d mins since GPS lock:%d",mins_since_boot,mins_since_lock);        
 			ten_char_maidenhead_to_latlon(_6_char_grid, grid7, grid8, grid9, grid10, &lat, &lon);

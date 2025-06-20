@@ -1,144 +1,0 @@
-2025-05-29T03:12:49.530Z
-arg count: 6, callsio: KC3LBR arg 2 channel: 585 arg3 comment: comms 2 here arg4 detail: deets 2 here Extened_telem_type 1
-epoch: 1748488369 arg count: 6, callsio: KC3LBR start minute: 8  id1: Q id3: 9 SpinLock: 0 channel as integer: 585 freq lane: 2 low/high freq limits 14097040 14097080
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748487769) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748487769)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 1st query was empty
-Parsing of 1st packet reveals: uploader:  and regular callsign (already known i hope): KC3LBR and the grid: 
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748487769) AND (stime LIKE '____-__-__ __%3A_0%25') AND (tx_sign LIKE 'Q_9%25') AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 304
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748487769)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_0%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 2nd query was empty
-(2bd pak) Telem callsign, grid, power:   0
-Result of 2nd DECODE: alt: 5140 grid56: IA (2nd pak) basic_telem_bit:0  bit1:0  knots:23 volts:14  temp:1   (2nd pak)  raw telem power of 0 normalized to 0
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748487769) AND (stime LIKE '____-__-__ __%3A_2%25') AND (tx_sign LIKE 'Q_9%25')  AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 305
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748487769)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_2%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 3rd query was empty
-(3rd packet) Telem callsign, grid, power:   0
-
-
-2025-05-29T03:13:59.717Z
-arg count: 6, callsio: KC3LBR arg 2 channel: 585 arg3 comment: comms 2 here arg4 detail: deets 2 here Extened_telem_type 1
-epoch: 1748488439 arg count: 6, callsio: KC3LBR start minute: 8  id1: Q id3: 9 SpinLock: 0 channel as integer: 585 freq lane: 2 low/high freq limits 14097040 14097080
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748487839) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748487839)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 1st query was empty
-Parsing of 1st packet reveals: uploader:  and regular callsign (already known i hope): KC3LBR and the grid: 
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748487839) AND (stime LIKE '____-__-__ __%3A_0%25') AND (tx_sign LIKE 'Q_9%25') AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 304
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748487839)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_0%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 2nd query was empty
-(2bd pak) Telem callsign, grid, power:   0
-Result of 2nd DECODE: alt: 5140 grid56: IA (2nd pak) basic_telem_bit:0  bit1:0  knots:23 volts:14  temp:1   (2nd pak)  raw telem power of 0 normalized to 0
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748487839) AND (stime LIKE '____-__-__ __%3A_2%25') AND (tx_sign LIKE 'Q_9%25')  AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 305
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748487839)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_2%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 3rd query was empty
-(3rd packet) Telem callsign, grid, power:   0
-
-
-2025-05-29 03:16:49
-arg count: 6, callsio: KC3LBR arg 2 channel: 585 arg3 comment: comms 2 here arg4 detail: deets 2 here Extened_telem_type 1
-epoch: 1748488609 arg count: 6, callsio: KC3LBR start minute: 8  id1: Q id3: 9 SpinLock: 0 channel as integer: 585 freq lane: 2 low/high freq limits 14097040 14097080
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748488009) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748488009)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 1st query was empty
-Parsing of 1st packet reveals: uploader:  and regular callsign (already known i hope): KC3LBR and the grid: 
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748488009) AND (stime LIKE '____-__-__ __%3A_0%25') AND (tx_sign LIKE 'Q_9%25') AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 304
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748488009)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_0%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 2nd query was empty
-(2bd pak) Telem callsign, grid, power:   0
-Result of 2nd DECODE: alt: 5140 grid56: IA (2nd pak) basic_telem_bit:0  bit1:0  knots:23 volts:14  temp:1   (2nd pak)  raw telem power of 0 normalized to 0
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748488009) AND (stime LIKE '____-__-__ __%3A_2%25') AND (tx_sign LIKE 'Q_9%25')  AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 305
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748488009)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_2%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 3rd query was empty
-(3rd packet) Telem callsign, grid, power:   0
-
-
-2025-05-29 03:17:31
-arg count: 6, callsio: KC3LBR arg 2 channel: 585 arg3 comment: comms 2 here arg4 detail: deets 2 here Extened_telem_type 1
-	epoch: 1748488651 arg count: 6, callsio: KC3LBR start minute: 8  id1: Q id3: 9 SpinLock: 0 channel as integer: 585 freq lane: 2 low/high freq limits 14097040 14097080
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748488051) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748488051)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 1st query was empty
-Parsing of 1st packet reveals: uploader:  and regular callsign (already known i hope): KC3LBR and the grid: 
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748488051) AND (stime LIKE '____-__-__ __%3A_0%25') AND (tx_sign LIKE 'Q_9%25') AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 304
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748488051)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_0%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 2nd query was empty
-(2bd pak) Telem callsign, grid, power:   0
-Result of 2nd DECODE: alt: 5140 grid56: IA (2nd pak) basic_telem_bit:0  bit1:0  knots:23 volts:14  temp:1   (2nd pak)  raw telem power of 0 normalized to 0
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748488051) AND (stime LIKE '____-__-__ __%3A_2%25') AND (tx_sign LIKE 'Q_9%25')  AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 305
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748488051)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_2%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 3rd query was empty
-(3rd packet) Telem callsign, grid, power:   0
-
-
-2025-05-29 03:19:36
-	arg count: 6, callsio: KC3LBR start minute: 8  id1: Q id3: 9 SpinLock: 0 channel as integer: 585 freq lane: 2 low/high freq limits 14097040 14097080
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748488176) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748488176)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 1st query was empty
-Parsing of 1st packet reveals: uploader:  and regular callsign (already known i hope): KC3LBR and the grid: 
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748488176) AND (stime LIKE '____-__-__ __%3A_0%25') AND (tx_sign LIKE 'Q_9%25') AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 304
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748488176)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_0%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 2nd query was empty
-(2bd pak) Telem callsign, grid, power:   0
-Result of 2nd DECODE: alt: 5140 grid56: IA (2nd pak) basic_telem_bit:0  bit1:0  knots:23 volts:14  temp:1   (2nd pak)  raw telem power of 0 normalized to 0
-Query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748488176) AND (stime LIKE '____-__-__ __%3A_2%25') AND (tx_sign LIKE 'Q_9%25')  AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 305
-STRINGIFIED: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748488176)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_2%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201Response to 3rd query was empty
-(3rd packet) Telem callsign, grid, power:   0
-
-
-2025-05-29 03:36:28
-	arg count: 6, callsio: KC3LBR start minute: 8  id1: Q id3: 9 SpinLock: 0 channel as integer: 585 freq lane: 2 low/high freq limits 14097040 14097080
-	query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489188) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
-	stringified: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489188)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201	1st query NO RESPONSE
-Parsing of 1st packet reveals: uploader:  and regular callsign (already known i hope): KC3LBR and the grid: 
-	query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489188) AND (stime LIKE '____-__-__ __%3A_0%25') AND (tx_sign LIKE 'Q_9%25') AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 304
-	stringified: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489188)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_0%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201	2nd query  NO RESPONSE
-	query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489188) AND (stime LIKE '____-__-__ __%3A_2%25') AND (tx_sign LIKE 'Q_9%25')  AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 305
-	stringified: 
-db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489188)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_2%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201	3rd query NO RESPONSE
-3rd query RAW: Telem callsign: , grid: , power:0
-
-
-2025-05-29 03:41:12
-	arg count: 6, callsio: KC3LBR start minute: 8  id1: Q id3: 9 SpinLock: 0 channel as integer: 585 freq lane: 2 low/high freq limits 14097040 14097080
-	query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489472) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
-	stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489472)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201
-	1st query NO RESPONSE
-	query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489472) AND (stime LIKE '____-__-__ __%3A_0%25') AND (tx_sign LIKE 'Q_9%25') AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 304
-	stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489472)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_0%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201
-	2nd query  NO RESPONSE
-	query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489472) AND (stime LIKE '____-__-__ __%3A_2%25') AND (tx_sign LIKE 'Q_9%25')  AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 305
-	stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489472)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_2%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201
-	3rd query NO RESPONSE
-3rd query RAW: Telem callsign: , grid: , power:0
-
-
-2025-05-29 03:42:23
-	arg count: 6, callsio: KC3LBR start minute: 8  id1: Q id3: 9 SpinLock: 0 channel as integer: 585 freq lane: 2 low/high freq limits 14097040 14097080
-	query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489543) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
-		 stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489543)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201
-	1st query NO RESPONSE
-	query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489543) AND (stime LIKE '____-__-__ __%3A_0%25') AND (tx_sign LIKE 'Q_9%25') AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 304
-		 stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489543)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_0%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201
-	2nd query  NO RESPONSE
-	query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489543) AND (stime LIKE '____-__-__ __%3A_2%25') AND (tx_sign LIKE 'Q_9%25')  AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 305
-		 stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489543)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_2%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201
-	3rd query NO RESPONSE
-
-
-2025-05-29 03:43:00
-	arg count: 6, callsio: KC3LBR start minute: 8  id1: Q id3: 9 SpinLock: 0 channel as integer: 585 freq lane: 2 low/high freq limits 14097040 14097080
-		query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489580) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
-		       stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489580)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201
-	1st query NO RESPONSE
-		query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489580) AND (stime LIKE '____-__-__ __%3A_0%25') AND (tx_sign LIKE 'Q_9%25') AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 304
-		       stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489580)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_0%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201
-	2nd query  NO RESPONSE
-		query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >1748489580) AND (stime LIKE '____-__-__ __%3A_2%25') AND (tx_sign LIKE 'Q_9%25')  AND (frequency>14097040) AND (frequency<14097080) ORDER BY time DESC LIMIT 1 and len: 305
-		       stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='14')%20AND%20(time%20>1748489580)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_2%25')%20AND%20(tx_sign%20LIKE%20'Q_9%25')%20%20AND%20(frequency>14097040)%20AND%20(frequency<14097080)%20ORDER%20BY%20time%20DESC%20LIMIT%201
-	3rd query NO RESPONSE
-
-

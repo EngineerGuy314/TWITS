@@ -90,12 +90,12 @@ void init(int argcc, const char *arg) {
 		was_spinlocked=1;
         usleep(100000); // 100 ms
     }
-	
     if (argcc>3)                                                               
 		snprintf(LOGFILE_PATH, sizeof(LOGFILE_PATH), "twits_log_ch_%s.txt", arg);  //create a unique logfile for that channel
 	else
 		snprintf(LOGFILE_PATH, sizeof(LOGFILE_PATH), "twits_log_NO_CHAN.txt");
 	
+
     struct stat st;                                        //tidy up logfile if its too big
     // Check if logfile exists and its size
     if (stat(LOGFILE_PATH, &st) == 0) {
@@ -104,7 +104,6 @@ void init(int argcc, const char *arg) {
 				printf("spinlock delete error\n");}}}
 	
 	log_file = fopen(LOGFILE_PATH,"a");  
-
 	_1st_pak_found=0;_2nd_pak_found=0;_3rd_pak_found=0;
 	
 								char datetime[30];
@@ -353,7 +352,7 @@ void send_to_sondehub(void)  //via json payload
 
 	snprintf(json_payload, 700,"[{"
     "\"software_name\":\"TWITS github.com/EngineerGuy314/TWITS\","
-    "\"software_version\":\"2.1 may30_2025\","
+    "\"software_version\":\"2.2 June19_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
@@ -382,11 +381,14 @@ void send_to_sondehub(void)  //via json payload
    	curl_easy_setopt(curl, CURLOPT_URL, url);	
 	curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); 
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    res = curl_easy_perform(curl);
-												fprintf(log_file,"\t results from curl put was %s\n",res);
+    int res = curl_easy_perform(curl);
+
+
+										fprintf(log_file,"\t results from curl put was %d\n",res);
 }
 //***************************************************************************
 int main(int argc, char *argv[]) {
+	
 	init(argc,argv[2]); //some boring stuff
 	epoch_time = time(NULL); 
 	curl = curl_easy_init();
@@ -467,6 +469,7 @@ int main(int argc, char *argv[]) {
 	curl_easy_cleanup(curl); curl_global_cleanup();
 	fprintf(log_file,"\n\n");
 	fclose(log_file); close(fd);  //close log and lockfile
+
     return 0;
 }
 

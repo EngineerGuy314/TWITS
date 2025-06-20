@@ -21,6 +21,8 @@ example crontab setup: `crontab -e`
 
 `*/5 * * * * /home/USERNAME/TWITS/twits.exe MyCall 582 "Comment Goes Here" "Detail goes here"`
 
+(if using extended telemetry run it every 3 minutes instead)
+
 In the above example: channel 582 corresponds to the starting minute 2 and id1 and id3 of Q and 9. Please see https://traquito.github.io/channelmap/ to find and reserve an open channel.
 
 ![q](https://github.com/user-attachments/assets/b7c6b9da-4d5e-4699-8208-35be26adce0c)

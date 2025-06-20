@@ -46,7 +46,7 @@ int mins_since_lock;
 char _6_char_grid[7]; 
 double lat, lon;
 char callsign[7];
-char payload_suffix[5];
+char payload_suffix[6];
 char _uploader[7];
 char detail[120];
 char comment[120];

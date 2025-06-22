@@ -197,27 +197,13 @@ void process_1st_packet(void)  //parses response to first SQL query (callsign pa
 
 void process_2nd_packet(void)  //parses response to second SQL query (basic telemetry packet)
 {
-	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to open and read the file anyway? Fah-Q you, thats why.
-	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
-				fprintf(log_file,"\t2nd query  NO RESPONSE\n");
-	else
-	{
-	_2nd_pak_found=1;
-				fprintf(log_file,"2nd query response was: %s",site_response);
-	}			
-	char *token;
-    int count = 0;
-	token = strtok(site_response, "\t");  // sets token as a pointer to first instance of TAB
-    while (token != NULL) 
-	{
-        count++;
-        if (count == 3) snprintf(_telem_callsign,7,"%s",token);  
-        if (count == 4) snprintf(_telem_grid,5,"%s",token);       
-		if (count == 7) _telem_power =  atoi(token);        
-		token = strtok(NULL, "\t");         // sets token as a pointer to the NEXT instance of TAB
-	}
-				if (_2nd_pak_found==1) fprintf(log_file,"2nd query RAW: Telem callsign:%s , grid:%s , power:%d\n",_telem_callsign,_telem_grid,_telem_power);
-	fclose(fp);
+
+        snprintf(_telem_callsign,7,"%s","QA9OXK");  
+         snprintf(_telem_grid,5,"%s","OA71");       
+		 _telem_power =  47;        
+
+		printf("2nd query RAW: Telem callsign:%s , grid:%s , power:%d\n",_telem_callsign,_telem_grid,_telem_power);
+
 }
 
 //******************************************************************************
@@ -269,7 +255,6 @@ altitude=20*(_32_bits%1068);  _32_bits=_32_bits/1068;    //unpack
 grid6='A'+(_32_bits%24); _32_bits=_32_bits/24;
 grid5='A'+(_32_bits%24);
 snprintf(_6_char_grid, 7,"%s%c%c",_4chargrid,grid5,grid6);
-						if (_2nd_pak_found==1) fprintf(log_file,"BASIC-TELEM DECODE: alt: %d grid56: %c%c ",altitude,grid5,grid6);
 
 //input: 4 char grid and power, outputs: bits, speed, volts, temp, (2nd of the 32 bit words)
 //_telem_grid ( 4 chars, 2 letts two nums) ,_telem_power  _telem_power_CONVERTED(int)
@@ -295,8 +280,11 @@ _knots=_32_bits%42;_32_bits=_32_bits/42;
 _volts=_32_bits%40;_32_bits=_32_bits/40;
 _temp=(_32_bits%90)-50;
 
-						if (_2nd_pak_found==1) fprintf(log_file,"\t basic_telem_bit:%d  bit1:%d  knots:%d volts:%d  temp:%d",basic_telem_bit,bit1,_knots,_volts,_temp);
-						if (_2nd_pak_found==1) fprintf(log_file," raw telem power of %d normalized to %d\n",_telem_power,_telem_power_CONVERTED);
+
+						printf("BASIC-TELEM DECODE: alt: %d grid56: %c%c ",altitude,grid5,grid6);
+
+						printf("\t basic_telem_bit:%d  bit1:%d  knots:%d volts:%d  temp:%d",basic_telem_bit,bit1,_knots,_volts,_temp);
+						printf(" raw telem power of %d normalized to %d\n",_telem_power,_telem_power_CONVERTED);
 }
 
 //******************************************************************************
@@ -340,9 +328,9 @@ grid8=_64_bits%10;  _64_bits=_64_bits/10;
 grid9=_64_bits%24;  _64_bits=_64_bits/24;    
 grid10=_64_bits%24;  _64_bits=_64_bits/24;    
 mins_since_boot=10*(_64_bits%101);  _64_bits=_64_bits/101;    
-mins_since_lock=10*(_64_bits%101);  _64_bits=_64_bits/101;  
+mins_since_lock=10*(_64_bits%101);  _64_bits=_64_bits/101;    
 
-						if (_3rd_pak_found==1) fprintf(log_file,"3rd packet DEXT DECODE: grid7: %d grid8: %d grid9: %d grid10: %d since_boot %d  since_gps %d  \n",grid7,grid8,grid9,grid10,mins_since_boot,mins_since_lock);
+				printf("3rd packet DEXT DECODE: grid7: %d grid8: %d grid9: %d grid10: %d since_boot %d  since_gps %d  \n",grid7,grid8,grid9,grid10,mins_since_boot,mins_since_lock);
 
 }
 
@@ -392,60 +380,19 @@ void send_to_sondehub(void)  //via json payload
 //***************************************************************************
 int main(int argc, char *argv[]) {
 	
-	init(argc,argv[2]); //some boring stuff
-	epoch_time = time(NULL); 
-	curl = curl_easy_init();
-											//printf("arg count: %d, callsio: %s arg 2 channel: %s arg3 comment: %s arg4 detail: %s Extened_telem_type %s\n",argc,argv[1],argv[2],argv[3],argv[4],argv[5]);
-											if (argc<5) fprintf(log_file,"!! got %d arguments, need 5 or 6!!\n",argc);
-	if (argc>=6) 
-		_extended_telem=atoi(argv[5]);
-	else
-		_extended_telem=0;
-	int chan_num=atoi(argv[2]);   //convert chan # to minute, id13 and lane
-	_id1[0]='1';
-	if  (chan_num<200) _id1[0]='0';
-	if  (chan_num>399) _id1[0]='Q';
-	int id3 = (chan_num % 200) / 20;
-	_id3[0]=id3+'0';		
-	_freq_lane = 1+((chan_num % 20)/5);   //1-4
-	_start_minute[0] = '0' + (2*(((chan_num % 5)+14)%5));
-	_start_minute[1]=0;_id1[1]=0;_id3[1]=0;  //null terminations
 
-	 switch(_freq_lane)   //set limits for bin-ing of telemetry
-		{
-		case 1: low_freq_limit=14097000; high_freq_limit=14097040; break;    
-		case 2: low_freq_limit=14097040; high_freq_limit=14097080; break; 
-		case 3: low_freq_limit=14097120; high_freq_limit=14097160; break; 
-		case 4: low_freq_limit=14097160; high_freq_limit=14097200; break; 
-		}
+//	process_2nd_packet();    //extracts _telem_callsign _telem_grid and _telem_power
+//	decode_telem_data();    //unpacks the encoded info from telemetry packet (into grid chars 5,6 and altitude) and converts grid to lat/lon. also gets _knots,_volts,_temp
 
-											fprintf(log_file, "\targ count: %d, callsio: %s start minute: %s  id1: %s id3: %s SpinLock: %d channel as integer: %d freq lane: %d low/high freq limits %d %d\n",argc,argv[1],_start_minute,_id1,_id3,was_spinlocked,chan_num,_freq_lane,low_freq_limit,high_freq_limit); 
-	snprintf(callsign, 7, "%s",argv[1]);
-	snprintf(payload_suffix, 5, "-%s",argv[2]);  //normally suffix is chann #
-	snprintf(comment,99,"%s",argv[3]);
-	snprintf(detail,99,"%s",argv[4]); 
 
-    // Build query string for callsign packet from wspr.live
-	start_minute_of_packet = atoi(_start_minute);
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,argv[1],low_freq_limit,high_freq_limit);
-	send_SQL_query();
-	process_1st_packet();    //extracts _uploader and _4chargrid
-	
-    // Build query string for telemetry packet from wspr.live
-	start_minute_of_packet = (atoi(_start_minute)+2)%10;
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
-	send_SQL_query();	
-	process_2nd_packet();    //extracts _telem_callsign _telem_grid and _telem_power
-		if (_2nd_pak_found==0) //if no match, try again without frequency binning
-		{
-							fprintf(log_file,"\t No 2nd match, trying again without Frequency bin\r");
-			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3);
-			send_SQL_query();	
-			process_2nd_packet();    //extracts _telem_callsign _telem_grid and _telem_power
-			if (_2nd_pak_found==1) strcpy(detail_prepend_msg, "NO FREQ BIN MATCH! ");
-		}
-	decode_telem_data();    //unpacks the encoded info from telemetry packet (into grid chars 5,6 and altitude) and converts grid to lat/lon. also gets _knots,_volts,_temp
+        snprintf(_telem_callsign,7,"%s","Q09ORF");  
+         snprintf(_telem_grid,5,"%s","MI76");       
+		 _telem_power =  40;        
 
+		printf("RAW input: Telem callsign:%s , grid:%s , power:%d\n",_telem_callsign,_telem_grid,_telem_power);
+	decode_extended_telem_data();
+
+/*
    // Build query string for EXTENDED telemetry packet from wspr.live
 	start_minute_of_packet = (atoi(_start_minute)+4)%10;
 	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
@@ -472,7 +419,7 @@ int main(int argc, char *argv[]) {
 	curl_easy_cleanup(curl); curl_global_cleanup();
 								fprintf(log_file,"\n\n");
 	fclose(log_file); close(fd);  //close log and lockfile
-
+*/
     return 0;
 }
 

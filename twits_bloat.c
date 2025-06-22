@@ -1,7 +1,7 @@
 //to compile:    gcc twits.c -o twits.exe -lcurl
 //args: callsign, U4B_type_channel, comment, details, [ExtendedPrecisionTelemetry-enable]
 // for debug compile:   gcc -fsanitize=address -g twits.c -o twits.exe -lcurl
-
+//gcc -fsanitize=address -g twits_bloat.c -o twits.exe -lcurl
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -17,6 +17,15 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>  
+
+#define MAX_RESPONSE_SIZE 4096
+
+// This struct holds the buffer and current write position
+struct MemoryBuffer {
+    char *data;
+    size_t size;
+    size_t max_size;
+};
 
 char LOGFILE_PATH[256];
 
@@ -71,6 +80,23 @@ int low_freq_limit;
 int high_freq_limit;
 
 #define SECONDS_TO_LOOK_BACK 600
+
+// Callback that writes into the buffer
+static size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
+    size_t total_size = size * nmemb;
+    struct MemoryBuffer *mem = (struct MemoryBuffer *)userp;
+
+    if (mem->size + total_size >= mem->max_size) {
+        // Prevent buffer overflow
+        total_size = mem->max_size - mem->size - 1;
+    }
+
+    memcpy(&(mem->data[mem->size]), contents, total_size);
+    mem->size += total_size;
+    mem->data[mem->size] = 0; // Null-terminate
+
+    return total_size;
+}
 ////********************************
 void get_iso_utc_time(char *buffer, size_t size) {
     struct timeval tv;struct tm *tm_info;gettimeofday(&tv, NULL);tm_info = gmtime(&tv.tv_sec);strftime(buffer, size, "%Y-%m-%dT%H:%M:%S", tm_info);snprintf(buffer + 19, size - 19, ".%03ldZ", tv.tv_usec / 1000); // Add milliseconds
@@ -339,8 +365,8 @@ grid7=_64_bits%10;  _64_bits=_64_bits/10;
 grid8=_64_bits%10;  _64_bits=_64_bits/10;    
 grid9=_64_bits%24;  _64_bits=_64_bits/24;    
 grid10=_64_bits%24;  _64_bits=_64_bits/24;    
-mins_since_boot=10*(_64_bits%101);  _64_bits=_64_bits/101;    
-mins_since_lock=10*(_64_bits%101);  _64_bits=_64_bits/101;  
+mins_since_boot=(_64_bits%1001);  _64_bits=_64_bits/1001;    
+mins_since_lock=(_64_bits%1001);  _64_bits=_64_bits/1001;    
 
 						if (_3rd_pak_found==1) fprintf(log_file,"3rd packet DEXT DECODE: grid7: %d grid8: %d grid9: %d grid10: %d since_boot %d  since_gps %d  \n",grid7,grid8,grid9,grid10,mins_since_boot,mins_since_lock);
 
@@ -349,6 +375,16 @@ mins_since_lock=10*(_64_bits%101);  _64_bits=_64_bits/101;
 //***************************************************************************
 void send_to_sondehub(void)  //via json payload
 {
+	    char response_buffer[MAX_RESPONSE_SIZE];
+
+    struct MemoryBuffer mem = {
+        .data = response_buffer,
+        .size = 0,
+        .max_size = sizeof(response_buffer)
+    };
+	
+	
+	
 	const char *url = "http://api.v2.sondehub.org/amateur/telemetry";
 	char datetime[30];
     get_iso_utc_time(datetime, sizeof(datetime));
@@ -385,13 +421,20 @@ void send_to_sondehub(void)  //via json payload
    	curl_easy_setopt(curl, CURLOPT_URL, url);	
 	curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); 
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+	
+	
+	 curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&mem);
+	
     res = curl_easy_perform(curl);
 
 										fprintf(log_file,"\t results from curl put was %s\n",curl_easy_strerror(res));
+										fprintf(log_file,"Repo Buffer  from curl put was %s\n",response_buffer);
 }
 //***************************************************************************
 int main(int argc, char *argv[]) {
 	
+
 	init(argc,argv[2]); //some boring stuff
 	epoch_time = time(NULL); 
 	curl = curl_easy_init();

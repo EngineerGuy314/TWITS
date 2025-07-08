@@ -353,10 +353,10 @@ void send_to_sondehub(void)  //via json payload
 	char datetime[30];
     get_iso_utc_time(datetime, sizeof(datetime));
 	char json_payload[701];
-
+	if (_knots==0) _knots=1; //i think sondehub ignores spots with 0 sattellites, this forces to at least 1
 	snprintf(json_payload, 700,"[{"
     "\"software_name\":\"TWITS github.com/EngineerGuy314/TWITS\","
-    "\"software_version\":\"2.2 June19_2025\","
+    "\"software_version\":\"2.4 July8_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","

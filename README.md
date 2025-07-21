@@ -29,7 +29,7 @@ In the above example: channel 582 corresponds to the starting minute 2 and id1 a
 
 "High Resolution Position reporting with Extended Telemetry"
 ------------
-You can enable extended telemetry by adding a '1' as the final command line parameter. This will plot the regular position (6 character resolution) in addition to the high resolution (10 character maidenhead) on sondehub as two separate ballons. First one will use the channel number as suffix, 2nd one will append an additional 'e' to the suffic to denote Extended resolution.
+You can enable the specific High-Resolution extended telemetry by adding a '1' as the final command line parameter. This will plot the regular position (6 character resolution) in addition to the high resolution (10 character maidenhead) on sondehub as two separate ballons. First one will use the channel number as suffix, 2nd one will append an additional 'e' to the suffic to denote Extended resolution.
 
 TWITS only looks in the first of the 3 available DEXT slots for the extended resolution positions, so if generating the high resolution position on a pico-WSPRer tracker your DEXT config must be "5xx". If generating the high resolution position in a Traquito or U4B tracker the information in the first extended-telemetry spot must have this format:
 
@@ -37,6 +37,7 @@ This will show a smoother more precise position track:
 ![granularity3](https://github.com/user-attachments/assets/23b63110-da75-4497-87ca-d43b68891098)
 
 
+For non picoWSPRer trackers, aka traquito, here is the extended telemetry configuration to emulation type 5 DEXT:
 ```
 { "name": "grid_char7",   "unit": "alpha",   "lowValue":   0,    "highValue": 23,    "stepSize": 1   },
 { "name": "grid_char8",   "unit": "alpha",    "lowValue":   0,    "highValue":    23,    "stepSize":  1 },
@@ -45,8 +46,12 @@ This will show a smoother more precise position track:
 { "name": "since_boot",   "unit": "minutes",    "lowValue":   0,  "highValue":     1000,  "stepSize":  10 },
 { "name": "since_gps_lock",  "unit": "minutes",  "lowValue":   0,  "highValue":     1000,  "stepSize":  10 },
 ```
-encoding minutes_since_boot and minutes_since_gps is not required, but the last 4 characters of the 10 character maidenhead grid must be encoded as shown
 
+
+"Generic (Custom) Extended Telemetry decoding"
+------------
+
+working on it...
 
 
 

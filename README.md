@@ -5,7 +5,7 @@
 
 A simple C program to extract pico-balloon flight data from wspr.live and send it to the Sondehub database. It is intended to be run periodically from a cron job. The cron setup passes your flight's callsign and relevant channel information as arguments to the program. For tracking multiple flights simply add multiple instances to the crontab.
 
-The goal was to make the program extremely straightforward and self contained. It is not reliant on any external frameworks or other runtime-environments. The intended use case is to run on an embedded device such as an OpenWRT based wireless router.
+The goal was to make the program extremely straightforward and self contained. It is not reliant on any external frameworks or other runtime-environments (but does require curl library). The intended use case is to run on an embedded device such as an OpenWRT based wireless router or old Raspberry Pi.
 
 There is very little along the lines of error checking though, so use at your own risk.
 

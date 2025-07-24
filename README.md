@@ -15,11 +15,11 @@ if needed, install libcurl, something like this:  `sudo apt-get update && sudo a
 
 
 
-Call the program as a cron job, with these arguments: callsign, U4B_type_channel, comment, details, [ExtendedTelemetry]
+Call the program as a cron job, with these arguments: callsign, U4B_type_channel, comment, [ExtendedTelemetry]
 
 example crontab setup: `crontab -e`
 
-`*/5 * * * * /home/USERNAME/TWITS/twits.exe MyCall 582 "Comment Goes Here" "Detail goes here"`
+`*/5 * * * * /home/USERNAME/TWITS/twits.exe MyCall 582 "Comment Goes Here"`
 
 (if using extended telemetry run it every 3 minutes instead)
 
@@ -31,7 +31,7 @@ In the above example: channel 582 corresponds to the starting minute 2 and id1 a
 ------------
 You can enable the specific High-Resolution Positioning extended telemetry by adding a '1' as the final command line parameter like this:
 
-`*/3 * * * * /home/USERNAME/TWITS/twits.exe MyCall 582 "Comment Goes Here" "Detail goes here" 1` 
+`*/3 * * * * /home/USERNAME/TWITS/twits.exe MyCall 582 "Comment Goes Here" 1` 
 
 This will plot the regular position (6 character resolution) in addition to the high resolution (10 character maidenhead) on sondehub as two separate ballons. First one will use the channel number as suffix, 2nd one will append an additional 'e' to the suffic to denote Extended resolution.
 

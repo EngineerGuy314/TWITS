@@ -55,6 +55,7 @@ For non picoWSPRer trackers, aka traquito, here is the extended telemetry config
 "Generic (Custom) Extended Telemetry decoding"
 ------------
 Rename the twits_ET_CONFIG_ch_xxx.txt file by replacing xxx with your 2 or 3 digit channel number. If tracking multiple flights you will have one file for each flight. Extended Telemetry values will be logged in the "detail" field on Sondehub
+
 ![et](https://github.com/user-attachments/assets/55ec522e-8b79-493b-a6b4-48251697fda2)
 
 The config file has special characters at the end which must not be removed. The program may temporarily modify the config file to store ET data in between transmissions. Add one line for each item

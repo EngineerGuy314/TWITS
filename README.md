@@ -10,6 +10,7 @@ The goal was to make the program extremely straightforward and self contained. I
 There is very little along the lines of error checking though, so use at your own risk.
 
 to compile:    `gcc twits.c -o twits.exe -lcurl`
+(yes, I know that in linux executables do not need a .exe suffix)
 
 if needed, install libcurl, something like this:  `sudo apt-get update && sudo apt install libcurl4`
 
@@ -26,6 +27,8 @@ example crontab setup: `crontab -e`
 In the above example: channel 582 corresponds to the starting minute 2 and id1 and id3 of Q and 9. Please see https://traquito.github.io/channelmap/ to find and reserve an open channel.
 
 ![q](https://github.com/user-attachments/assets/b7c6b9da-4d5e-4699-8208-35be26adce0c)
+
+The pogram automatically creates a separate logfile in the working direcory for each channel being tracked. Logs are deleted automatically after exceeding 4MB.
 
 "High Resolution Position reporting with Extended Telemetry"
 ------------

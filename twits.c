@@ -239,7 +239,7 @@ void load_temporary_ET_data(void)   //on startup loads any ET slot data that was
 			snprintf(ET_results5,strstr(buffer, "<END>")-strstr(buffer, "<SL5>")-4,"%s",start);
 			free(buffer);
 			//printf("the ET results:\n3-%s\n4-%s\n5-%s\n", ET_results3,ET_results4,ET_results5);
-			fprintf(log_file,"!!! LOADING FROM FILE: \n\t3-%s\n\t4-%s\n\t5-%s\n", ET_results3,ET_results4,ET_results5);
+			//fprintf(log_file,"!!! LOADING FROM FILE: \n\t3-%s\n\t4-%s\n\t5-%s\n", ET_results3,ET_results4,ET_results5);
 		}
 }
 
@@ -270,7 +270,7 @@ FILE *fp = fopen(ET_CONFIG_FILE_PATH, "r+"); // read + write
 		fflush(fp);
 		fclose(fp);
 	}
-		fprintf(log_file,"!!! SAVING TO FILE: \n\t3-%s\n\t4-%s\n\t5-%s\n", ET_results3,ET_results4,ET_results5);
+		//fprintf(log_file,"!!! SAVING TO FILE: \n\t3-%s\n\t4-%s\n\t5-%s\n", ET_results3,ET_results4,ET_results5);
 }
 //************************************************************	
 void maidenhead_to_latlon(const char *grid, double *lat, double *lon) {
@@ -512,7 +512,7 @@ void send_to_sondehub(void)  //via json payload
 	if (_knots==0) _knots=1; //i think sondehub ignores spots with 0 sattellites, this forces to at least 1
 	snprintf(json_payload, 700,"[{"
 	"\"software_name\":\"TWITS github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"3.2 July25_2025\","
+	"\"software_version\":\"3.3 July25_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
@@ -686,7 +686,8 @@ int main(int argc, char *argv[]) {
 			remove_temporary_ET_data();	
 			send_to_sondehub();     // send to Sondehub via json payload
 		}
-
+	else  save_temporary_ET_data();
+	
 					//special niche feature: (NOT generic/custom ET)
 					// if high-res position EXTENDED telem found, send special packet to sondehub
 					if 	((_1st_pak_found==1)&&(_2nd_pak_found==1)&&(High_res_TELEM_pak_found==1)&&(second_pack_was_Basic_Telem==1)&&(_HIGH_RES_Positioning_from_ET_enabled==1))   // if you received 3 packets AND the 2nd packet was basic telem AND you have selected extended telem decode
@@ -698,7 +699,7 @@ int main(int argc, char *argv[]) {
 							send_to_sondehub();     
 						}
 
-	save_temporary_ET_data();
+	
 	curl_easy_cleanup(curl); curl_global_cleanup(); fprintf(log_file,"\n\n");								
 	fclose(log_file); close(fd);  //close log and lockfile	
 	return 0;

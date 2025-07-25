@@ -3,7 +3,7 @@
 "Trivial WSPR Information To Sondehub"
 ------------
 
-A simple C program to extract pico-balloon flight data from wspr.live and send it to the Sondehub database. It is intended to be run periodically from a cron job. The cron setup passes your flight's callsign and relevant channel information as arguments to the program. For tracking multiple flights simply add multiple instances to the crontab.
+A simple C program to extract pico-balloon flight data from wspr.live and send it to the Sondehub database. Also supports custom user-defined Extended Telemetry. It is intended to be run periodically from a cron job. The cron setup passes your flight's callsign and relevant channel information as arguments to the program. For tracking multiple flights simply add multiple instances to the crontab.
 
 The goal was to make the program extremely straightforward and self contained. It is not reliant on any external frameworks or other runtime-environments (but does require curl library). The intended use case is to run on an embedded device such as an OpenWRT based wireless router or old Raspberry Pi.
 
@@ -54,9 +54,21 @@ For non picoWSPRer trackers, aka traquito, here is the extended telemetry config
 
 "Generic (Custom) Extended Telemetry decoding"
 ------------
+Rename the twits_ET_CONFIG_ch_xxx.txt file by replacing xxx with your 2 or 3 digit channel number. If tracking multiple flights you will have one file for each flight. Extended Telemetry values will be logged in the "detail" field on Sondehub
+![et](https://github.com/user-attachments/assets/55ec522e-8b79-493b-a6b4-48251697fda2)
 
-working on it...
+The config file has special characters at the end which must not be removed. The program may temporarily modify the config file to store ET data in between transmissions. Add one line for each item
+`name, unit,low-value,high-value,step-size,slot ` 
+"slot" corresponds to ET telemetry slot. Only 3,4 or 5 are valid! (slots 1 and 2 must be standard Callsign and Basic-telemetry)
 
-
+```
+#example of slot 3 telemetry config
+MinSinceBoot,Count,0,1000,1,3
+MinSinceGPSValid,Count,0,1000,1,3
+GPSValid,Count,0,1,1,3
+SatCount,Count,0,60,1,3
+# DO NOT CHANGE ANYTHING BELOW HERE #
+<EOF><SL3><SL4><SL5><END>
+```
 
 

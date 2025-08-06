@@ -511,9 +511,10 @@ void send_to_sondehub(void)  //via json payload
 	char json_payload[701];
 	if (_knots==0) _knots=1; //i think sondehub ignores spots with 0 sattellites, this forces to at least 1
 	snprintf(json_payload, 700,"[{"
-	"\"software_name\":\"TWITS github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"3.3 July25_2025\","
+	"\"software_name\":\"github.com/EngineerGuy314/TWITS\","
+	"\"software_version\":\"3.4 Aug_6_2025\","
 	"\"modulation\":\"WSPR\","
+	"\"type\":\"KC3LBR pico-WSPRer\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
 	"\"detail\":\"%s%s\","

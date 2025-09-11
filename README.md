@@ -24,7 +24,7 @@ example crontab setup: `crontab -e`
 
 (if using extended telemetry run it every 3 minutes instead)
 
-In the above example: channel 582 corresponds to the starting minute 2 and id1 and id3 of Q and 9. Please see https://traquito.github.io/channelmap/ to find and reserve an open channel.
+In the above example: channel 582 corresponds to the starting minute 2 and id1 and id3 of Q and 9. Please see https://traquito.github.io/channelmap/ to find and reserve an open channel. TWITS assumes you are using the 20 Meter band! There is limited support for 10M however. For instance, if you are on channel 525 of the 10 Meter band, enter channel number 525-10. 
 
 ![q](https://github.com/user-attachments/assets/b7c6b9da-4d5e-4699-8208-35be26adce0c)
 

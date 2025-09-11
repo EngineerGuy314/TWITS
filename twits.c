@@ -29,6 +29,7 @@ char ET_results3[201];
 char ET_results4[201];
 char ET_results5[201];
 char ET_res_buf[201];
+int id3;
 FILE *fp;
 FILE *log_file;
 CURL *curl;
@@ -49,7 +50,8 @@ int grid9; //base 24
 int grid10; //base 24
 int mins_since_boot;
 int mins_since_lock;
-char _6_char_grid[7]; 
+char _6_char_grid[7];
+char _band_freq_for_query[3]; 
 double lat, lon;
 char callsign[7];
 char payload_suffix[6];
@@ -124,23 +126,42 @@ void init(const char *arg) {
 	log_file = fopen(LOGFILE_PATH,"a");  	
 												char datetime[30];get_iso_utc_timeSIMPLE(datetime, sizeof(datetime));fprintf(log_file,"%s\n",datetime);	
 	//******** decipher chanel number *********************************************************************************************
+
 	chan_num=atoi(arg);	   	//get channel number         (arg is actually argv[2] passed in from main)  	
 	_id1[0]='1';
 	if  (chan_num<200) _id1[0]='0';
 	if  (chan_num>399) _id1[0]='Q';
-	int id3 = (chan_num % 200) / 20;
-	_id3[0]=id3+'0';		
+	id3 = (chan_num % 200) / 20;
+	_id3[0]=id3+'0';			
 	_freq_lane = 1+((chan_num % 20)/5);   //1-4
-	_start_minute[0] = '0' + (2*(((chan_num % 5)+14)%5));
-	_start_minute[1]=0;_id1[1]=0;_id3[1]=0;  //null terminations
+	_start_minute[1]=0;_id1[1]=0;_id3[1]=0;  //null terminations	
+	
+	if (strstr(arg, "-10") != NULL) 
+		{                                //this flight is on 10 Meter band
+				strcpy(_band_freq_for_query,"28");
 
-	 switch(_freq_lane)   //set limits for bin-ing of telemetry
-		{
-		case 1: low_freq_limit=14097000; high_freq_limit=14097040; break;    
-		case 2: low_freq_limit=14097040; high_freq_limit=14097080; break; 
-		case 3: low_freq_limit=14097120; high_freq_limit=14097160; break; 
-		case 4: low_freq_limit=14097160; high_freq_limit=14097200; break; 
+				_start_minute[0] = '0' + (2*(((chan_num % 5)+12)%5)); 
+				 switch(_freq_lane)   //set limits for bin-ing of telemetry
+						{
+						case 1: low_freq_limit=28126000; high_freq_limit=28126040; break;    
+						case 2: low_freq_limit=28126040; high_freq_limit=28126080; break; 
+						case 3: low_freq_limit=28126120; high_freq_limit=28126160; break; 
+						case 4: low_freq_limit=28126160; high_freq_limit=28126200; break; 
+						}
 		}
+		else                            //if not on 10M, its the default of 20M
+		{
+			strcpy(_band_freq_for_query,"14");
+				_start_minute[0] = '0' + (2*(((chan_num % 5)+14)%5));
+				 switch(_freq_lane)   //set limits for bin-ing of telemetry
+						{
+						case 1: low_freq_limit=14097000; high_freq_limit=14097040; break;    
+						case 2: low_freq_limit=14097040; high_freq_limit=14097080; break; 
+						case 3: low_freq_limit=14097120; high_freq_limit=14097160; break; 
+						case 4: low_freq_limit=14097160; high_freq_limit=14097200; break; 
+						}
+	}
+
 														fprintf(log_file, "\tstart minute: %s  id1: %s id3: %s SpinLock: %d channel as integer: %d freq lane: %d low/high freq limits %d %d\n",_start_minute,_id1,_id3,was_spinlocked,chan_num,_freq_lane,low_freq_limit,high_freq_limit); 
 	//************** Check for ET (extended telemetry) config file ********************************************************************************
 	
@@ -512,7 +533,7 @@ void send_to_sondehub(void)  //via json payload
 	if (_knots==0) _knots=1; //i think sondehub ignores spots with 0 sattellites, this forces to at least 1
 	snprintf(json_payload, 700,"[{"
 	"\"software_name\":\"github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"3.4 Aug_6_2025\","
+	"\"software_version\":\"3.5 Sept_10_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"type\":\"KC3LBR pico-WSPRer\","
 	"\"datetime\":\"%s\","
@@ -632,20 +653,20 @@ int main(int argc, char *argv[]) {
 
 // Build query string for callsign packet from wspr.live
 	start_minute_of_packet = atoi(_start_minute);
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,argv[1]);
+	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,argv[1]);
 
 	send_SQL_query();
 	process_1st_packet();    //extracts _uploader and _4chargrid   
 	
 // Build query string for basic telemetry packet from wspr.live
 	start_minute_of_packet = (atoi(_start_minute)+2)%10;
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
+	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
 	send_SQL_query();	
 	process_2nd_packet();    //extracts _telem_callsign _telem_grid and _telem_power
 				/*if (_2nd_pak_found==0) //if no match, try again without frequency binning (DISABLED FOR NOW, prolly not needed. causes trouble more often than it helps?)
 				{
 													fprintf(log_file,"\t No 2nd match, trying again without Frequency bin\r");
-					snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3);
+					snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3);
 					send_SQL_query();	
 					process_2nd_packet();    //extracts _telem_callsign _telem_grid and _telem_power
 					if (_2nd_pak_found==1) strcpy(detail_prepend_msg, "NO FREQ BIN MATCH! ");
@@ -656,7 +677,7 @@ int main(int argc, char *argv[]) {
 		{
 		// Build query string for slot 3 EXTENDED telemetry packet from wspr.live
 			start_minute_of_packet = (atoi(_start_minute)+4)%10;
-			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
+			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
 			send_SQL_query();   _TELEM_pak_found=0;
 			process_possible_TELEM_packet(3);       	 //extracts _telem_callsign _telem_grid and _telem_power, sets _TELEM_pak_found if something found
 			if (_TELEM_pak_found && _HIGH_RES_Positioning_from_ET_enabled)  decode_HIGH_RES_POSITION_from_ET();   	 // this is just for the niche high-precision positioning feature
@@ -666,14 +687,14 @@ int main(int argc, char *argv[]) {
 		{
 		// Build query string for slot 4 EXTENDED telemetry packet from wspr.live
 			start_minute_of_packet = (atoi(_start_minute)+6)%10;
-			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
+			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
 			send_SQL_query();   _TELEM_pak_found=0;
 			process_possible_TELEM_packet(4);       	 //extracts _telem_callsign _telem_grid and _telem_power, sets _TELEM_pak_found if something found
 			if (_TELEM_pak_found) decode_generic_ET_for_slot(4);     //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
 
 		// Build query string for slot 5 EXTENDED telemetry packet from wspr.live
 			start_minute_of_packet = (atoi(_start_minute)+8)%10;
-			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='14') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
+			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
 			send_SQL_query();   _TELEM_pak_found=0;
 			process_possible_TELEM_packet(5);       	 //extracts _telem_callsign _telem_grid and _telem_power, sets _TELEM_pak_found if something found
 			if (_TELEM_pak_found) decode_generic_ET_for_slot(5);     //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid

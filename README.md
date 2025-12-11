@@ -12,7 +12,7 @@ There is very little along the lines of error checking though, so use at your ow
 to compile:    `gcc twits.c -o twits.exe -lcurl`
 (yes, I know that in linux executables do not need a .exe suffix)
 
-if needed, install libcurl, something like this:  `sudo apt-get update && sudo apt install libcurl4`
+if needed, install libcurl, something like this:  `sudo apt-get update && sudo apt install libcurl4` and maybe also `sudo apt install libcurl4-openssl-dev`
 
 
 

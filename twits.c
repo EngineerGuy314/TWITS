@@ -54,7 +54,7 @@ char _6_char_grid[7];
 char _band_freq_for_query[3]; 
 double lat, lon;
 char callsign[7];
-char payload_suffix[6];
+char payload_suffix[9];
 char _uploader[12];  
 char detail[601];
 char comment[200];
@@ -533,9 +533,9 @@ void send_to_sondehub(void)  //via json payload
 	if (_knots==0) _knots=1; //i think sondehub ignores spots with 0 sattellites, this forces to at least 1
 	snprintf(json_payload, 700,"[{"
 	"\"software_name\":\"github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"3.5 Sept_10_2025\","
+	"\"software_version\":\"4 Dec_26_2025\","
 	"\"modulation\":\"WSPR\","
-	"\"type\":\"KC3LBR pico-WSPRer\","
+	"\"type\":\"KC3LBR pico-WSPRer or JAWBONE\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
 	"\"detail\":\"%s%s\","
@@ -647,7 +647,7 @@ int main(int argc, char *argv[]) {
 														if (_HIGH_RES_Positioning_from_ET_enabled && Generic_ET_is_Enabled)  fprintf(log_file,"!!!!!!!!! Found Generic ET config file AND found argument to enable High Res positioning!! not sure if that will work, untested!!!\n");
 
 	snprintf(callsign, 7, "%s",argv[1]);
-	snprintf(payload_suffix, 5, "-%s",argv[2]);  //normally suffix is chan#
+	snprintf(payload_suffix, 8, "-%s",argv[2]);  //normally suffix is chan#
 	snprintf(comment,99,"%s",argv[3]);
 	
 
@@ -715,7 +715,7 @@ int main(int argc, char *argv[]) {
 					if 	((_1st_pak_found==1)&&(_2nd_pak_found==1)&&(High_res_TELEM_pak_found==1)&&(second_pack_was_Basic_Telem==1)&&(_HIGH_RES_Positioning_from_ET_enabled==1))   // if you received 3 packets AND the 2nd packet was basic telem AND you have selected extended telem decode
 						{
 																			fprintf(log_file,"SENDING -EXTENDED- HIGH RES POSITION TO SONDEHUB !! Three paks were found and basic_telem of 2nd pak was on \n");
-							snprintf(payload_suffix, 6, "-%se",argv[2]);   //appends an 'e' at end of suffix
+							snprintf(payload_suffix, 9, "-%se",argv[2]);   //appends an 'e' at end of suffix
 							snprintf(detail,100,"ET high-res. mins since boot: %d mins since GPS lock:%d",mins_since_boot,mins_since_lock);        
 							ten_char_maidenhead_to_latlon(_6_char_grid, grid7, grid8, grid9, grid10, &lat, &lon);
 							send_to_sondehub();     

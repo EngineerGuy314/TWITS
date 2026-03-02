@@ -3,6 +3,7 @@
 
 // for debug compile:   gcc -fsanitize=address -g twits.c -o twits.exe -lcurl
 //for compile with extra warnings: gcc -Wall -Wextra -Wformat twits.c -o twits.exe -lcurl
+// push notes MArch 2026: added support for GenericET, added sondetype as an explicit input param, and removed plotting of 2nd high-res positions, 
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,6 +59,7 @@ char payload_suffix[9];
 char _uploader[12];  
 char detail[601];
 char comment[200];
+char tracker_type[200];
 int second_pack_was_Basic_Telem;
 int bit1;
 int _knots;
@@ -78,8 +80,11 @@ int _TELEM_pak_found;
 int _freq;
 int low_freq_limit;
 int high_freq_limit;
-int Generic_ET_is_Enabled=0;
-struct ET_data {          //for generic (custom message) Extended Telemetry
+int regular_ET_is_Enabled=0;
+int GENERIC_ET_is_Enabled=0;  //means it does not use the 6 bits in original DEXT spec
+
+
+struct ET_data {          //for regular (custom message) Extended Telemetry
     char name[40];
     char units[10];
 	int low;
@@ -103,7 +108,7 @@ void get_iso_utc_timeSIMPLE(char *buffer, size_t size) {
     struct timeval tv;struct tm *tm_info;gettimeofday(&tv, NULL);tm_info = gmtime(&tv.tv_sec);strftime(buffer, size, "%Y-%m-%d %H:%M:%S", tm_info);
 }
 //***************************************************************************
-void init(const char *arg) {
+void init(const char *arg) {   //receives channel # as arg
 	
 	//**************** spin lock stuff ********************************************************************
 	const char *lockfile = "/tmp/mylockfile.lock";              //spin lock if called more than once
@@ -176,7 +181,14 @@ void init(const char *arg) {
 						// Skip comments or blank lines
 						if (line[0] == '#' || line[0] == '\n' || line[0] == '\r'  || line[0] == ' ')
 							continue;
+
 						if (strncmp(line, "<EOF>", 5) == 0) break;  //quit if <EOF> keyword found. needed because may use space below that for storage between runs
+
+						if (strncmp(line, "GENERIC", 7) == 0) 
+							{
+								GENERIC_ET_is_Enabled=1;
+								continue;
+							}
 
 						// Parse line
 						char *name = strtok(line, ",");
@@ -201,7 +213,7 @@ void init(const char *arg) {
 						ET_config_array[count].step = atoi(step_str);
 						ET_config_array[count].slot = atoi(slot_str);   
 						count++; 
-						Generic_ET_is_Enabled=1; //if we got this far, assume at least some valid lines were found
+						regular_ET_is_Enabled=1; //if we got this far, assume at least some valid lines were found
 						ET_results3[0]=0;ET_results4[0]=0;ET_results5[0]=0; //just in case null termiantes the string used to store ET results
 													if (count>30) {fprintf(log_file,"EXCEEDED 30 pieces of ET data!\n"); fclose(log_file);printf("EXCEEDED 30 pieces of ET data!");exit(1);}
 					}
@@ -473,51 +485,6 @@ _temp=(_32_bits%90)-50;
 									if (_2nd_pak_found==1) fprintf(log_file," raw telem power of %d normalized to %d\n",_telem_power,_telem_power_CONVERTED);
 }
 
-//******************************************************************************
-
-void 	decode_HIGH_RES_POSITION_from_ET(void)  //input: callsign (not including char 0 and 2), grid and power , outputs: grid7,8,9,10 minutes ince boot and gps lock
-{
-uint64_t _64_bits;
-
-  int _telem_power_CONVERTED;
-  for(int i = 0; i < 19; i++)
-  {
-    if(_telem_power == valid_dbm[i])
-      _telem_power_CONVERTED=i;
-  }
-
-int v1= _telem_callsign[1]; if (v1<65) v1=v1-'0'; else v1=v1+10-'A';  
-int v2= _telem_callsign[3]-'A'; 
-int v3= _telem_callsign[4]-'A'; 
-int v4= _telem_callsign[5]-'A'; 
-	
-			  ;_64_bits =v1;                         //pack
-_64_bits *= 26;_64_bits+=v2; 
-_64_bits *= 26;_64_bits+=v3; 
-_64_bits *= 26;_64_bits+=v4; 
-_64_bits *= 18; _64_bits+=_telem_grid[0]-'A';   		//btw, first two chars have range of 18, but chars 5,6 have range of 24. wikiepdia suggest  9,10 probably also base 24 "The fifth and subsequent pairs are not formally defined, but recursing to the third and fourth pair algorithms is a possibility"
-_64_bits *= 18;	_64_bits+=_telem_grid[1]-'A';	
-_64_bits *= 10;	_64_bits+=_telem_grid[2]-'0';	
-_64_bits *= 10;	_64_bits+=_telem_grid[3]-'0';	
-_64_bits *= 19;	_64_bits+=_telem_power_CONVERTED;	
-
-											   //unpack
-					_64_bits=_64_bits/2;      //telem type
-					_64_bits=_64_bits/4;	  //reserved
-					_64_bits=_64_bits/16;     //Type
-					_64_bits=_64_bits/5;	  //slot	
-grid7=_64_bits%10;  _64_bits=_64_bits/10;           
-grid8=_64_bits%10;  _64_bits=_64_bits/10;    
-grid9=_64_bits%24;  _64_bits=_64_bits/24;                      //btw, first two chars have range of 18, but chars 5,6 have range of 24. wikiepdia suggest  9,10 probably also base 24 "The fifth and subsequent pairs are not formally defined, but recursing to the third and fourth pair algorithms is a possibility"
-grid10=_64_bits%24;  _64_bits=_64_bits/24;    
-mins_since_boot=10*(_64_bits%101);  _64_bits=_64_bits/101;    
-mins_since_lock=10*(_64_bits%101);  _64_bits=_64_bits/101;  
-
-
-						if (_TELEM_pak_found==1) fprintf(log_file,"3rd packet DEXT DECODE: grid7: %d grid8: %d grid9: %d grid10: %d since_boot %d  since_gps %d  \n",grid7,grid8,grid9,grid10,mins_since_boot,mins_since_lock);
-
-High_res_TELEM_pak_found=1;
-}
 //****************************************************************************
 size_t discard_response(char *ptr, size_t size, size_t nmemb, void *userdata) {
     return size * nmemb;
@@ -533,9 +500,9 @@ void send_to_sondehub(void)  //via json payload
 	if (_knots==0) _knots=1; //i think sondehub ignores spots with 0 sattellites, this forces to at least 1
 	snprintf(json_payload, 700,"[{"
 	"\"software_name\":\"github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"4 Dec_26_2025\","
+	"\"software_version\":\"5 March_3_2025\","
 	"\"modulation\":\"WSPR\","
-	"\"type\":\"KC3LBR pico-WSPRer or JAWBONE\","
+	"\"type\":\"%s\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
 	"\"detail\":\"%s%s\","
@@ -547,7 +514,7 @@ void send_to_sondehub(void)  //via json payload
 	"\"sats\":%d,"
 	"\"temp\":%d,"
 	"\"batt\":%f"
-	"}]",datetime,comment,detail_prepend_msg,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,_knots,_temp,2+(((_volts*5)+200)/(float)100));           
+	"}]",tracker_type,datetime,comment,detail_prepend_msg,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,_knots,_temp,2+(((_volts*5)+200)/(float)100));           
 
 														fprintf(log_file,"JASON PAYLOAD to SONDEHUB is: %s\n",json_payload);
 
@@ -569,16 +536,20 @@ void send_to_sondehub(void)  //via json payload
 
 //***************************************************************************
 
-void decode_generic_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
+void decode_regular_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
 	{
+
+
+
 		uint64_t _64_bits;
 		int _telem_type;
 		int slot_val;
 		int range;
 		int data;
 		int _telem_power_CONVERTED;
+		int GenericET_6bits;
 
-													fprintf(log_file,"\tdecoding generic ET packet in slot # %d \n",_slot);
+													fprintf(log_file,"\tdecoding regular ET packet in slot # %d \n",_slot);
 
 		for(int i = 0; i < 19; i++)
 			{
@@ -603,10 +574,24 @@ void decode_generic_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem
 
 														   // UN-PACK  (extract via modulo, shift-right, repeat...)
 		_telem_type=_64_bits%2;	_64_bits=_64_bits/2;      //telem type  (0 for Extended, 1 for Basic)
-		/* xxx =_64_bits%4;*/	_64_bits=_64_bits/4;	  //reserved
-		/* xxx =_64_bits%16;*/	_64_bits=_64_bits/16;     //Type (reserved)
-		slot_val=_64_bits%5;	_64_bits=_64_bits/5;	  //slot	
 
+		if (GENERIC_ET_is_Enabled==1)                      //new-style GenericET, save the data in those 6 bits for later decoding
+			{
+			GenericET_6bits=_64_bits%64; _64_bits=_64_bits/64;	  //reserved
+			}
+				else                                           //doing old style DEXT, shift past those unneeded 6 header bits
+			{
+			/* xxx =_64_bits%4;*/	_64_bits=_64_bits/4;	  //reserved
+			/* xxx =_64_bits%16;*/	_64_bits=_64_bits/16;     //Type (reserved)
+			}
+
+		slot_val=_64_bits%5;	_64_bits=_64_bits/5;	  //extract slot from header
+
+		if (GENERIC_ET_is_Enabled==1) //if using GenerET, now that the above line has shifted past the slot portion of header, re-insert the 6 bits into big number before decoding below
+			{
+				_64_bits*=64; 
+				_64_bits+=GenericET_6bits;
+			}
 
 		ET_res_buf[0]=0;
 		slot_val++; //needed because spec numbers slots 0-4 not 1-5
@@ -623,34 +608,26 @@ void decode_generic_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem
 						data=_64_bits%range;_64_bits=_64_bits/range;      						
 						snprintf(ET_res_buf + strlen(ET_res_buf), sizeof(ET_res_buf) - strlen(ET_res_buf), "%s: %d (slot:%d) ",ET_config_array[i].name,data,_slot);			
 					}
-				}
-								
+				}								
 				if(_slot==3) snprintf(ET_results3,strlen(ET_res_buf),"%s",ET_res_buf);
 				if(_slot==4) snprintf(ET_results4,strlen(ET_res_buf),"%s",ET_res_buf);
 				if(_slot==5) snprintf(ET_results5,strlen(ET_res_buf),"%s",ET_res_buf);
 			}
-
 	
 	}
 //***************************************************************************
 int main(int argc, char *argv[]) {
-	if (argc<4) {printf("NOT ENOUGH ARGUMENTS !!! need 4 or 5 (including prog name). example: twits.exe callsign, channel, comment, [high-res telem]. arg count was : %d, \n",argc);fprintf(log_file,"Not enough cmd line args!\n"); fclose(log_file);exit(1);}
-	init(argv[2]); //some boring stuff	 
+	if (argc!=5) {printf("NOT ENOUGH ARGUMENTS !!! need 5 (including prog name). example: twits.exe callsign, channel, comment, tracker type. arg count was : %d, \n",argc);fprintf(log_file,"Not enough cmd line args!\n"); fclose(log_file);exit(1);}
+	init(argv[2]); //some boring stuff, sends argv[2] (channel number)	 
 	load_temporary_ET_data();
 	curl = curl_easy_init();
 														
-	if (argc>=5) 
-		if( atoi(argv[4])==1) _HIGH_RES_Positioning_from_ET_enabled=1;
-	else
-		_HIGH_RES_Positioning_from_ET_enabled=0;
-	
-														if (_HIGH_RES_Positioning_from_ET_enabled && Generic_ET_is_Enabled)  fprintf(log_file,"!!!!!!!!! Found Generic ET config file AND found argument to enable High Res positioning!! not sure if that will work, untested!!!\n");
 
 	snprintf(callsign, 7, "%s",argv[1]);
 	snprintf(payload_suffix, 8, "-%s",argv[2]);  //normally suffix is chan#
 	snprintf(comment,99,"%s",argv[3]);
+	snprintf(tracker_type,99,"%s",argv[4]);
 	
-
 // Build query string for callsign packet from wspr.live
 	start_minute_of_packet = atoi(_start_minute);
 	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,argv[1]);
@@ -673,54 +650,41 @@ int main(int argc, char *argv[]) {
 				}*/
 	decode_BASIC_telem_data();    //unpacks the encoded info from telemetry packet (into grid chars 5,6 and altitude) and converts grid to lat/lon. also gets _knots,_volts,_temp
 
-	if (Generic_ET_is_Enabled || _HIGH_RES_Positioning_from_ET_enabled)
+	if (regular_ET_is_Enabled)
 		{
 		// Build query string for slot 3 EXTENDED telemetry packet from wspr.live
 			start_minute_of_packet = (atoi(_start_minute)+4)%10;
 			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
 			send_SQL_query();   _TELEM_pak_found=0;
 			process_possible_TELEM_packet(3);       	 //extracts _telem_callsign _telem_grid and _telem_power, sets _TELEM_pak_found if something found
-			if (_TELEM_pak_found && _HIGH_RES_Positioning_from_ET_enabled)  decode_HIGH_RES_POSITION_from_ET();   	 // this is just for the niche high-precision positioning feature
-			if (_TELEM_pak_found && Generic_ET_is_Enabled) 					decode_generic_ET_for_slot(3);    		 //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
+			if (_TELEM_pak_found && regular_ET_is_Enabled) 					decode_regular_ET_for_slot(3);    		 //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
 		}
-	if (Generic_ET_is_Enabled)
+	if (regular_ET_is_Enabled)
 		{
 		// Build query string for slot 4 EXTENDED telemetry packet from wspr.live
 			start_minute_of_packet = (atoi(_start_minute)+6)%10;
 			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
 			send_SQL_query();   _TELEM_pak_found=0;
 			process_possible_TELEM_packet(4);       	 //extracts _telem_callsign _telem_grid and _telem_power, sets _TELEM_pak_found if something found
-			if (_TELEM_pak_found) decode_generic_ET_for_slot(4);     //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
+			if (_TELEM_pak_found) decode_regular_ET_for_slot(4);     //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
 
 		// Build query string for slot 5 EXTENDED telemetry packet from wspr.live
 			start_minute_of_packet = (atoi(_start_minute)+8)%10;
 			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
 			send_SQL_query();   _TELEM_pak_found=0;
 			process_possible_TELEM_packet(5);       	 //extracts _telem_callsign _telem_grid and _telem_power, sets _TELEM_pak_found if something found
-			if (_TELEM_pak_found) decode_generic_ET_for_slot(5);     //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
+			if (_TELEM_pak_found) decode_regular_ET_for_slot(5);     //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
 		}
 // if callsign and basic telem were found, send regular packet to sondehub
 	if 	((_1st_pak_found==1)&&(_2nd_pak_found==1)&&(second_pack_was_Basic_Telem==1))   //only if you received two packets AND the 2nd packet was basic telem (not someone else's Extended Telem)
 		{
 													fprintf(log_file,"SENDING TO SONDEHUB (regular)!! two paks were found and basic_telem was on \n");
 			maidenhead_to_latlon(_6_char_grid, &lat, &lon);	
-			if (Generic_ET_is_Enabled) snprintf(detail,sizeof(detail),"%s %s %s",ET_results3,ET_results4,ET_results5);  //copies the ET resultss into detail field
+			if (regular_ET_is_Enabled) snprintf(detail,sizeof(detail),"%s %s %s",ET_results3,ET_results4,ET_results5);  //copies the ET resultss into detail field
 			remove_temporary_ET_data();	
 			send_to_sondehub();     // send to Sondehub via json payload
 		}
 	else  save_temporary_ET_data();
-	
-					//special niche feature: (NOT generic/custom ET)
-					// if high-res position EXTENDED telem found, send special packet to sondehub
-					if 	((_1st_pak_found==1)&&(_2nd_pak_found==1)&&(High_res_TELEM_pak_found==1)&&(second_pack_was_Basic_Telem==1)&&(_HIGH_RES_Positioning_from_ET_enabled==1))   // if you received 3 packets AND the 2nd packet was basic telem AND you have selected extended telem decode
-						{
-																			fprintf(log_file,"SENDING -EXTENDED- HIGH RES POSITION TO SONDEHUB !! Three paks were found and basic_telem of 2nd pak was on \n");
-							snprintf(payload_suffix, 9, "-%se",argv[2]);   //appends an 'e' at end of suffix
-							snprintf(detail,100,"ET high-res. mins since boot: %d mins since GPS lock:%d",mins_since_boot,mins_since_lock);        
-							ten_char_maidenhead_to_latlon(_6_char_grid, grid7, grid8, grid9, grid10, &lat, &lon);
-							send_to_sondehub();     
-						}
-
 	
 	curl_easy_cleanup(curl); curl_global_cleanup(); fprintf(log_file,"\n\n");								
 	fclose(log_file); close(fd);  //close log and lockfile	

@@ -36,9 +36,9 @@ The pogram automatically creates a separate logfile in the working direcory for 
 
 `*/3 * * * * /home/USERNAME/TWITS/twits.exe MyCall 582 "Comment Goes Here" 1` 
 
-~~This will plot the regular position (6 character resolution) in addition to the high resolution (10 character maidenhead) on sondehub as two separate ballons. First one will use the channel number as suffix, 2nd one will append an additional 'e' to the suffic to denote Extended resolution.
+~~This will plot the regular position (6 character resolution) in addition to the high resolution (10 character maidenhead) on sondehub as two separate ballons. First one will use the channel number as suffix, 2nd one will append an additional 'e' to the suffic to denote Extended resolution.~~
 
-TWITS only looks in the first of the 3 available DEXT slots for the extended resolution positions, so if generating the high resolution position on a pico-WSPRer tracker your DEXT config must be "5xx". If generating the high resolution position in a Traquito or U4B tracker the information in the first extended-telemetry spot must have this format:~~
+~~TWITS only looks in the first of the 3 available DEXT slots for the extended resolution positions, so if generating the high resolution position on a pico-WSPRer tracker your DEXT config must be "5xx". If generating the high resolution position in a Traquito or U4B tracker the information in the first extended-telemetry spot must have this format:~~
 
 This will show a smoother more precise position track:
 ![granularity3](https://github.com/user-attachments/assets/23b63110-da75-4497-87ca-d43b68891098)

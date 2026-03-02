@@ -32,6 +32,8 @@ The pogram automatically creates a separate logfile in the working direcory for 
 
 "High Resolution Position reporting with Extended Telemetry"
 ------------
+This feature was removed because it clutters up the sondehub map and it is now redundant because WSPRTV.COM can now plot position in high resolution.
+
 ~~You can enable the specific High-Resolution Positioning extended telemetry by adding a '1' as the final command line parameter like this:~~
 
 `*/3 * * * * /home/USERNAME/TWITS/twits.exe MyCall 582 "Comment Goes Here" 1` 

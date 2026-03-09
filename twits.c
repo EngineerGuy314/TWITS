@@ -166,7 +166,7 @@ void init(const char *arg) {   //receives channel # as arg
 						case 4: low_freq_limit=14097160; high_freq_limit=14097200; break; 
 						}
 	}
-
+	high_freq_limit+=30;    //fudge factor, my trackers seem to be running a little high on output freq, also this in general loosens binning requirement since a lot of receivers are uncalibrated anyway. Future: change to fingerprinting to only use station that recd 1st packer? I don't know...
 														fprintf(log_file, "\tstart minute: %s  id1: %s id3: %s SpinLock: %d channel as integer: %d freq lane: %d low/high freq limits %d %d\n",_start_minute,_id1,_id3,was_spinlocked,chan_num,_freq_lane,low_freq_limit,high_freq_limit); 
 	//************** Check for ET (extended telemetry) config file ********************************************************************************
 	
@@ -500,7 +500,7 @@ void send_to_sondehub(void)  //via json payload
 	if (_knots==0) _knots=1; //i think sondehub ignores spots with 0 sattellites, this forces to at least 1
 	snprintf(json_payload, 700,"[{"
 	"\"software_name\":\"github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"5 March_3_2025\","
+	"\"software_version\":\"5.2 March_9_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"type\":\"%s\","
 	"\"datetime\":\"%s\","

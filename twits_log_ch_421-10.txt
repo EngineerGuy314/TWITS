@@ -1,0 +1,28 @@
+2026-03-10 16:51:33
+	start minute: 6  id1: Q id3: 1 SpinLock: 0 channel as integer: 421 freq lane: 1 low/high freq limits 28126000 28126070
+		query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='28') AND (time >1773160893) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
+		       stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='28')%20AND%20(time%20>1773160893)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201
+	1st query NO RESPONSE
+		query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='28') AND (time >1773160893) AND (stime LIKE '____-__-__ __%3A_8%25') AND (tx_sign LIKE 'Q_1%25') AND (frequency>28126000) AND (frequency<28126070) ORDER BY time DESC LIMIT 1 and len: 304
+		       stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='28')%20AND%20(time%20>1773160893)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20AND%20(tx_sign%20LIKE%20'Q_1%25')%20AND%20(frequency>28126000)%20AND%20(frequency<28126070)%20ORDER%20BY%20time%20DESC%20LIMIT%201
+2nd query response was: 2026-03-10 16:48:00	28	QA1OXM	QO93	53.479	158.958	13	2026-03-10 16:48:00
+2nd query RAW: Telem callsign:QA1OXM , grid:QO93 , power:13
+BASIC-TELEM DECODE: alt: 40 grid56: HG 	 second_pack_was_Basic_Telem:1  bit1:1  knots:0 volts:26  temp:35 raw telem power of 13 normalized to 4
+
+
+2026-03-10 16:52:55
+	start minute: 6  id1: Q id3: 1 SpinLock: 0 channel as integer: 421 freq lane: 1 low/high freq limits 28126000 28126070
+		query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='28') AND (time >1773160975) AND (stime LIKE '____-__-__ __%3A_8%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
+		       stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='28')%20AND%20(time%20>1773160975)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201
+1st query response was: 2026-03-10 16:48:00	28	VY0ERC	KC3LBR	EQ77	77.479	-85.042	10	2026-03-10 16:48:00
+1st packet PARSED: uploader: VY0ERC and regular callsign (already known i hope): KC3LBR and the grid: EQ77
+		query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='28') AND (time >1773160975) AND (stime LIKE '____-__-__ __%3A_8%25') AND (tx_sign LIKE 'Q_1%25') AND (frequency>28126000) AND (frequency<28126070) ORDER BY time DESC LIMIT 1 and len: 304
+		       stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='28')%20AND%20(time%20>1773160975)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20AND%20(tx_sign%20LIKE%20'Q_1%25')%20AND%20(frequency>28126000)%20AND%20(frequency<28126070)%20ORDER%20BY%20time%20DESC%20LIMIT%201
+2nd query response was: 2026-03-10 16:48:00	28	QA1OXM	QO93	53.479	158.958	13	2026-03-10 16:48:00
+2nd query RAW: Telem callsign:QA1OXM , grid:QO93 , power:13
+BASIC-TELEM DECODE: alt: 40 grid56: HG 	 second_pack_was_Basic_Telem:1  bit1:1  knots:0 volts:26  temp:35 raw telem power of 13 normalized to 4
+SENDING TO SONDEHUB (regular)!! two paks were found and basic_telem was on 
+JASON PAYLOAD to SONDEHUB is: [{"software_name":"github.com/EngineerGuy314/TWITS","software_version":"6.xx March_9_2025","modulation":"WSPR","type":"JAWBONE","datetime":"2026-03-10T16:52:56.042Z","comment":"x","detail":"","uploader_callsign":"VY0ERC","payload_callsign":"KC3LBR-421-10","lat":77.270833,"lon":-85.375000,"alt":40,"temp":35,"batt":5.300000}]
+	 results from curl put was No error
+
+

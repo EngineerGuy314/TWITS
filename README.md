@@ -3,7 +3,7 @@
 "Trivial WSPR Information To Sondehub"
 ------------
 
-A simple C program to extract pico-balloon flight data from wspr.live and send it to the Sondehub database. Also supports custom user-defined Extended Telemetry. It is intended to be run periodically from a cron job. The cron setup passes your flight's callsign and relevant channel information as arguments to the program. For tracking multiple flights simply add multiple instances to the crontab.
+A "simple" C program to extract pico-balloon flight data from wspr.live and send it to the Sondehub database. Also supports custom user-defined Extended Telemetry. It is intended to be run periodically from a cron job. The cron setup passes your flight's callsign and relevant channel information as arguments to the program. For tracking multiple flights simply add multiple instances to the crontab.
 
 The goal was to make the program extremely straightforward and self contained. It is not reliant on any external frameworks or other runtime-environments (but does require curl library). The intended use case is to run on an embedded device such as an OpenWRT based wireless router or old Raspberry Pi.
 
@@ -16,13 +16,13 @@ if needed, install libcurl, something like this:  `sudo apt-get update && sudo a
 
 
 
-Call the program as a cron job, with these arguments: callsign, U4B_type_channel, comment, [ExtendedTelemetry]
+Call the program as a cron job, with these arguments: callsign, U4B_type_channel, comment, tracker_type
 
 example crontab setup: `crontab -e`
 
-`*/5 * * * * /home/USERNAME/TWITS/twits.exe MyCall 582 "Comment Goes Here"`
+`*/9 * * * * /home/USERNAME/TWITS/twits.exe MyCall 582 "Comment Goes Here" "Traquito"`
 
-(if using extended telemetry run it every 3 minutes instead)
+Run it every 9 minutes!
 
 In the above example: channel 582 corresponds to the starting minute 2 and id1 and id3 of Q and 9. Please see https://traquito.github.io/channelmap/ to find and reserve an open channel. TWITS assumes you are using the 20 Meter band! There is limited support for 10M however. For instance, if you are on channel 525 of the 10 Meter band, enter channel number 525-10. 
 
@@ -68,9 +68,9 @@ Rename the twits_ET_CONFIG_ch_xxx.txt file by replacing xxx with your 2 or 3 dig
 ![et](https://github.com/user-attachments/assets/55ec522e-8b79-493b-a6b4-48251697fda2)
 
 
-If you want to use Genric-ET (which utilizes an otherwise wasted 6 bits from the original DEXT format) the first line the the ET_Config file must be 'GENERIC'
+If you want to use Genric-ET (which utilizes an otherwise wasted 6 bits from the original DEXT format) the first line the the ET_Config file must be 'GENERIC', otherwise assumes ET0 style of DEXT.
 
-The config file has special characters at the end which must not be removed. The program may temporarily modify the config file to store ET data in between transmissions. Add one line for each item
+~~The config file has special characters at the end which must not be removed. The program may temporarily modify the config file to store ET data in between transmissions.~~ Add one line for each item
 `name, unit,low-value,high-value,step-size,slot ` 
 "slot" corresponds to ET telemetry slot. Only 3,4 or 5 are valid! (slots 1 and 2 must be standard Callsign and Basic-telemetry)
 
@@ -80,8 +80,6 @@ MinSinceBoot,Count,0,1000,1,3
 MinSinceGPSValid,Count,0,1000,1,3
 GPSValid,Count,0,1,1,3
 SatCount,Count,0,60,1,3
-# DO NOT CHANGE ANYTHING BELOW HERE #
-<EOF><SL3><SL4><SL5><END>
 ```
 
 

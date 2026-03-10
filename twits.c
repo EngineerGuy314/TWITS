@@ -4,7 +4,8 @@
 // for debug compile:   gcc -fsanitize=address -g twits.c -o twits.exe -lcurl
 //for compile with extra warnings: gcc -Wall -Wextra -Wformat twits.c -o twits.exe -lcurl
 // push notes MArch 2026: added support for GenericET, added sondetype as an explicit input param, and removed plotting of 2nd high-res positions, 
-
+// later March 2026: phase 1, get rid of retentive file memory, call every 9 minuts, look back to the previous^2 timeslot with a Callsign
+//					 phase 2: switch to fingerprinintg, with fallback to VERY OPEN binning, display actual freq in deets
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -24,6 +25,7 @@
 char LOGFILE_PATH[256];
 
 time_t epoch_time;
+size_t len;
 char query_raw[501];           //will cause segflt if too small (should prolly make dynamic)
 char query_stringified[501];
 char ET_results3[201];
@@ -58,7 +60,8 @@ char callsign[7];
 char payload_suffix[9];
 char _uploader[12];  
 char detail[601];
-char comment[200];
+char tmp[500];
+char comment[500];
 char tracker_type[200];
 int second_pack_was_Basic_Telem;
 int bit1;
@@ -72,7 +75,6 @@ int chan_num;
 char _id1[2];
 char _id3[2];
 int _freq_lane;
-int _HIGH_RES_Positioning_from_ET_enabled;   //special case of type 5 DEXT from picoWSRPRer
 int start_minute_of_packet;
 int _1st_pak_found;
 int _2nd_pak_found;
@@ -80,8 +82,9 @@ int _TELEM_pak_found;
 int _freq;
 int low_freq_limit;
 int high_freq_limit;
-int regular_ET_is_Enabled=0;
+int ET_is_Enabled=0;   //original ET0 style
 int GENERIC_ET_is_Enabled=0;  //means it does not use the 6 bits in original DEXT spec
+time_t time_since_start_of_seq;
 
 
 struct ET_data {          //for regular (custom message) Extended Telemetry
@@ -98,8 +101,15 @@ struct ET_data ET_config_array[31];
 int High_res_TELEM_pak_found;
 const int8_t valid_dbm[19] = { 0, 3, 7, 10, 13, 17, 20, 23, 27, 30, 33, 37, 40, 43, 47, 50, 53, 57, 60};
 
-
-#define SECONDS_TO_LOOK_BACK 600
+//*************************************************************************
+	void prepend_to_comment(const char *literal)
+{
+    if (!literal || literal[0] == '\0') return;  // nothing to prepend
+    char tmp[sizeof(comment)];  // safe temporary buffer
+    snprintf(tmp, sizeof(tmp), "%s%s", literal, comment);    
+    strncpy(comment, tmp, sizeof(comment));
+    comment[sizeof(comment) - 1] = '\0';
+}
 ////********************************
 void get_iso_utc_time(char *buffer, size_t size) {
     struct timeval tv;struct tm *tm_info;gettimeofday(&tv, NULL);tm_info = gmtime(&tv.tv_sec);strftime(buffer, size, "%Y-%m-%dT%H:%M:%S", tm_info);snprintf(buffer + 19, size - 19, ".%03ldZ", tv.tv_usec / 1000); // Add milliseconds
@@ -213,7 +223,7 @@ void init(const char *arg) {   //receives channel # as arg
 						ET_config_array[count].step = atoi(step_str);
 						ET_config_array[count].slot = atoi(slot_str);   
 						count++; 
-						regular_ET_is_Enabled=1; //if we got this far, assume at least some valid lines were found
+						ET_is_Enabled=1; //if we got this far, assume at least some valid lines were found
 						ET_results3[0]=0;ET_results4[0]=0;ET_results5[0]=0; //just in case null termiantes the string used to store ET results
 													if (count>30) {fprintf(log_file,"EXCEEDED 30 pieces of ET data!\n"); fclose(log_file);printf("EXCEEDED 30 pieces of ET data!");exit(1);}
 					}
@@ -226,85 +236,8 @@ void init(const char *arg) {   //receives channel # as arg
 		epoch_time = time(NULL);
 		detail[0]=0;
 }
-//************************************************************
-void remove_temporary_ET_data(void)   //after a succesful send to sondehub (when callsign and basic telem were found) clear out any remaining temporary ET slot results
-{
-    char buffer[1024];
-    long offset = 0;
-	long result;
-	
-FILE *fp = fopen(ET_CONFIG_FILE_PATH, "r+"); // read + write
-    if (fp)
-	{
-		while (fgets(buffer, sizeof(buffer), fp)) 
-		{
-			char *pos = strstr(buffer, "<EOF>");
-			if (pos) {result = offset + (pos - buffer);break;}
-			offset += strlen(buffer);
-		}
-		fseek(fp, result+5, SEEK_SET);
-		ftruncate(fileno(fp), result+5);		
-		fseek(fp, 0, SEEK_END);
-		fputs("<SL3><SL4><SL5><END>", fp);
-		fflush(fp);
-		fclose(fp);
-	}
-}
-//************************************************************
-void load_temporary_ET_data(void)   //on startup loads any ET slot data that was collected but not sent (because callsign and basic telem weren't ready)
-{
-	char *start;
-	FILE *fp = fopen(ET_CONFIG_FILE_PATH, "r"); // read 
-    if (fp)
-		{
-			fseek(fp, 0, SEEK_END);
-			long filesize = ftell(fp);
-			rewind(fp);
-			char *buffer = malloc(filesize + 1);
-			fread(buffer, 1, filesize, fp);
-			buffer[filesize] = '\0';  // Null-terminate
-			fclose(fp);
-			start = 5 + strstr(buffer, "<SL3>");
-			snprintf(ET_results3,strstr(buffer, "<SL4>")-strstr(buffer, "<SL3>")-4,"%s",start);
-			start = 5 + strstr(buffer, "<SL4>");
-			snprintf(ET_results4,strstr(buffer, "<SL5>")-strstr(buffer, "<SL4>")-4,"%s",start);
-			start = 5 + strstr(buffer, "<SL5>");
-			snprintf(ET_results5,strstr(buffer, "<END>")-strstr(buffer, "<SL5>")-4,"%s",start);
-			free(buffer);
-			//printf("the ET results:\n3-%s\n4-%s\n5-%s\n", ET_results3,ET_results4,ET_results5);
-			//fprintf(log_file,"!!! LOADING FROM FILE: \n\t3-%s\n\t4-%s\n\t5-%s\n", ET_results3,ET_results4,ET_results5);
-		}
-}
 
-//***********************************************************
 
-void save_temporary_ET_data(void)    //any ET slot data that was collected but not sent (because callsign and basic telem weren't ready) saved to the config file for next time
-{
-    char buffer[1024];
-    long offset = 0;
-	long result;
-	
-FILE *fp = fopen(ET_CONFIG_FILE_PATH, "r+"); // read + write
-    if (fp)
-	{
-		while (fgets(buffer, sizeof(buffer), fp)) 
-		{
-			char *pos = strstr(buffer, "<EOF>");
-			if (pos) {result = offset + (pos - buffer);break;}
-			offset += strlen(buffer);
-		}
-		fseek(fp, result+5, SEEK_SET);
-		ftruncate(fileno(fp), result+5);		
-		fseek(fp, 0, SEEK_END);
-		fputs("<SL3>", fp); fputs(ET_results3, fp);
-		fputs("<SL4>", fp); fputs(ET_results4, fp);
-		fputs("<SL5>", fp); fputs(ET_results5, fp);
-		fputs("<END>", fp);
-		fflush(fp);
-		fclose(fp);
-	}
-		//fprintf(log_file,"!!! SAVING TO FILE: \n\t3-%s\n\t4-%s\n\t5-%s\n", ET_results3,ET_results4,ET_results5);
-}
 //************************************************************	
 void maidenhead_to_latlon(const char *grid, double *lat, double *lon) {
     // Convert Maidenhead grid to lat/lon
@@ -320,7 +253,7 @@ void maidenhead_to_latlon(const char *grid, double *lat, double *lon) {
 }
 
 //************************************************************
-
+/*
 void ten_char_maidenhead_to_latlon(const char *grid, int c7, int c8, int c9, int c10, double *lat, double *lon) {
     // Convert Maidenhead grid to lat/lon
     int field_lon = toupper(grid[0]) - 'A';
@@ -333,7 +266,7 @@ void ten_char_maidenhead_to_latlon(const char *grid, int c7, int c8, int c9, int
     *lon = (field_lon * 20.0) + (square_lon * 2.0) + (subsquare_lon * (2.0 / 24.0))   + (c7*(2/240.0)) + (c9*(2/(240.0*24.0)))  +(1/(240.0*24.0))     - 180.0;
     *lat = (field_lat * 10.0) + (square_lat * 1.0) + (subsquare_lat * (1.0 / 24.0))   + (c8*(1/240.0)) + (c10*(1/(240.0*24.0)))  +(1/(240.0*48.0))     - 90.0;
 }
-
+*/
 //****************************************************************************************
 void replace_spaces(const char *input, char *output) {
     while (*input) {
@@ -362,11 +295,12 @@ void send_SQL_query(void)  //formats and sends (as a simple HTTP request) the co
 	fclose(fp);
 }
 //******************************************************************************
-void process_1st_packet(void)  //parses response to first SQL query (callsign packet)
+int process_1st_packet(void)  //parses response to first SQL query (callsign packet)
 {
 	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to just open and read the file anyway? Fah-Q, thats why.
+	_1st_pak_found=0;
 	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
-															fprintf(log_file,"\t1st query NO RESPONSE\n");
+												fprintf(log_file,"\t1st query NO RESPONSE\n");
 	else
 	{
 	_1st_pak_found=1;
@@ -384,14 +318,16 @@ void process_1st_packet(void)  //parses response to first SQL query (callsign pa
 	}
 	fclose(fp);
 													if (_1st_pak_found==1) fprintf(log_file, "1st packet PARSED: uploader: %s and regular callsign (already known i hope): %s and the grid: %s\n",_uploader,callsign,_4chargrid);
+
+	return _1st_pak_found;
 }
 //******************************************************************************
 
-void process_2nd_packet(void)  //parses response to second SQL query (basic telemetry packet)
+int process_2nd_packet(void)  //parses response to second SQL query (basic telemetry packet), return 1 or 0 (1 for packet found)
 {
 	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to open and read the file anyway? Fah-Q you, thats why.
 	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
-							fprintf(log_file,"\t2nd query  NO RESPONSE\n");
+						{fprintf(log_file,"\t2nd query  NO RESPONSE\n");_2nd_pak_found=0;}
 	else
 	{
 	_2nd_pak_found=1;
@@ -410,19 +346,21 @@ void process_2nd_packet(void)  //parses response to second SQL query (basic tele
 	}
 								if (_2nd_pak_found==1) fprintf(log_file,"2nd query RAW: Telem callsign:%s , grid:%s , power:%d\n",_telem_callsign,_telem_grid,_telem_power);
 	fclose(fp);
+	return _2nd_pak_found;
 }
 
 //******************************************************************************
 
-void process_possible_TELEM_packet(int _slot)  //parses response to SQL query for potential Extended telemetry packet. puts values into _telem_callsign,_telem_grid,_telem_power
+int process_possible_TELEM_packet(int _slot)  //parses response to SQL query for potential Extended telemetry packet. puts values into _telem_callsign,_telem_grid,_telem_power
 {
+	_TELEM_pak_found=0;
 	fp = fopen("curl_response.tmp","r");  //why make curl put results into a file, if your going to open and read the file anyway? Fah-Q you, thats why.
-	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))
-										fprintf(log_file,"\tNO query  RESPONSE for slot %d\n",_slot);
+	if ((  fgets(site_response, sizeof(site_response), fp)==NULL))		
+							fprintf(log_file,"\tNO query  RESPONSE for slot %d\n",_slot);
 	else
 	{
 		_TELEM_pak_found=1;
-										fprintf(log_file,"query response for slot %d was:\n %s",_slot,site_response);
+													fprintf(log_file,"query response for slot %d was:\n %s",_slot,site_response);
 	}
 	char *token;
     int count = 0;
@@ -435,8 +373,9 @@ void process_possible_TELEM_packet(int _slot)  //parses response to SQL query fo
 		if (count == 7) _telem_power =  atoi(token);        
 		token = strtok(NULL, "\t");         // sets token as a pointer to the NEXT instance of TAB
 	}
-												if (_TELEM_pak_found==1) fprintf(log_file," query for slot %d  RAW: Telem callsign:%s , grid:%s , power:%d\n",_slot,_telem_callsign,_telem_grid,_telem_power);
+														if (_TELEM_pak_found==1) fprintf(log_file," query for slot %d  RAW: Telem callsign:%s , grid:%s , power:%d\n",_slot,_telem_callsign,_telem_grid,_telem_power);
 	fclose(fp);
+	return _TELEM_pak_found;
 }
 
 //******************************************************************************
@@ -497,10 +436,9 @@ void send_to_sondehub(void)  //via json payload
 	char datetime[30];
     get_iso_utc_time(datetime, sizeof(datetime));
 	char json_payload[701];
-	if (_knots==0) _knots=1; //i think sondehub ignores spots with 0 sattellites, this forces to at least 1
 	snprintf(json_payload, 700,"[{"
 	"\"software_name\":\"github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"5.2 March_9_2025\","
+	"\"software_version\":\"6.03 March_9_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"type\":\"%s\","
 	"\"datetime\":\"%s\","
@@ -511,10 +449,9 @@ void send_to_sondehub(void)  //via json payload
 	"\"lat\":%f,"
 	"\"lon\":%f,"
 	"\"alt\":%d,"
-	"\"sats\":%d,"
 	"\"temp\":%d,"
 	"\"batt\":%f"
-	"}]",tracker_type,datetime,comment,detail_prepend_msg,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,_knots,_temp,2+(((_volts*5)+200)/(float)100));           
+	"}]",tracker_type,datetime,comment,detail_prepend_msg,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,_temp,2+(((_volts*5)+200)/(float)100));           
 
 														fprintf(log_file,"JASON PAYLOAD to SONDEHUB is: %s\n",json_payload);
 
@@ -536,10 +473,8 @@ void send_to_sondehub(void)  //via json payload
 
 //***************************************************************************
 
-void decode_regular_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
+void decode_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
 	{
-
-
 
 		uint64_t _64_bits;
 		int _telem_type;
@@ -549,7 +484,7 @@ void decode_regular_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem
 		int _telem_power_CONVERTED;
 		int GenericET_6bits;
 
-													fprintf(log_file,"\tdecoding regular ET packet in slot # %d \n",_slot);
+													fprintf(log_file,"\tdecoding  ET packet in slot # %d \n",_slot);
 
 		for(int i = 0; i < 19; i++)
 			{
@@ -609,85 +544,94 @@ void decode_regular_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem
 						snprintf(ET_res_buf + strlen(ET_res_buf), sizeof(ET_res_buf) - strlen(ET_res_buf), "%s: %d (slot:%d) ",ET_config_array[i].name,data,_slot);			
 					}
 				}								
-				if(_slot==3) snprintf(ET_results3,strlen(ET_res_buf),"%s",ET_res_buf);
-				if(_slot==4) snprintf(ET_results4,strlen(ET_res_buf),"%s",ET_res_buf);
-				if(_slot==5) snprintf(ET_results5,strlen(ET_res_buf),"%s",ET_res_buf);
+				if(_slot==3) {snprintf(ET_results3,strlen(ET_res_buf),"%s",ET_res_buf);prepend_to_comment(" 2 ");}
+				if(_slot==4) {snprintf(ET_results4,strlen(ET_res_buf),"%s",ET_res_buf);prepend_to_comment(" 3 ");}
+				if(_slot==5) {snprintf(ET_results5,strlen(ET_res_buf),"%s",ET_res_buf);prepend_to_comment(" 4 ");}
+																	//shows up as a 2,3 or 4 to indicate which absolute slote number of ET was read
 			}
 	
 	}
 //***************************************************************************
 int main(int argc, char *argv[]) {
-	if (argc!=5) {printf("NOT ENOUGH ARGUMENTS !!! need 5 (including prog name). example: twits.exe callsign, channel, comment, tracker type. arg count was : %d, \n",argc);fprintf(log_file,"Not enough cmd line args!\n"); fclose(log_file);exit(1);}
+	if (argc!=5) {printf("NOT ENOUGH ARGUMENTS !!! need 5 (including prog name). example: twits.exe callsign, channel, comment, tracker-type. arg count was : %d, \n",argc);fprintf(log_file,"Not enough cmd line args!\n"); fclose(log_file);exit(1);}
 	init(argv[2]); //some boring stuff, sends argv[2] (channel number)	 
-	load_temporary_ET_data();
 	curl = curl_easy_init();
 														
-
 	snprintf(callsign, 7, "%s",argv[1]);
 	snprintf(payload_suffix, 8, "-%s",argv[2]);  //normally suffix is chan#
 	snprintf(comment,99,"%s",argv[3]);
 	snprintf(tracker_type,99,"%s",argv[4]);
-	
-// Build query string for callsign packet from wspr.live
+		
 	start_minute_of_packet = atoi(_start_minute);
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,argv[1]);
+	time_since_start_of_seq = 600 + (((epoch_time % 600) + (600-(start_minute_of_packet*60))) % 600);  // go far enough back in time to start at the beginning of the SECOND to last start-minute so you will gaurantees to see one full set
+	time_since_start_of_seq+=15; //fudge factor
+												fprintf(log_file,"\n start min: %d time since seq: %lld current epoch: %lld \n",start_minute_of_packet,(long long)time_since_start_of_seq,(long long)epoch_time);
 
+// Build query string for callsign packet from wspr.live	
+	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-time_since_start_of_seq),start_minute_of_packet,argv[1]);
 	send_SQL_query();
-	process_1st_packet();    //extracts _uploader and _4chargrid   
+	if (process_1st_packet())    //extracts _uploader and _4chargrid , TRUE if found (dont bother with anything else if not found)
+		{
 	
-// Build query string for basic telemetry packet from wspr.live
-	start_minute_of_packet = (atoi(_start_minute)+2)%10;
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
-	send_SQL_query();	
-	process_2nd_packet();    //extracts _telem_callsign _telem_grid and _telem_power
-				/*if (_2nd_pak_found==0) //if no match, try again without frequency binning (DISABLED FOR NOW, prolly not needed. causes trouble more often than it helps?)
+/*wuz*/				fprintf(log_file,"\n THE -uploader callsign is %s and its size is %d \n",_uploader,sizeof(_uploader));
+
+
+			// Build query string for basic telemetry packet from wspr.live
+			start_minute_of_packet = (atoi(_start_minute)+2)%10;
+			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') AND (rx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",_band_freq_for_query,(120+epoch_time-time_since_start_of_seq),start_minute_of_packet,_id1,_id3,_uploader);
+			send_SQL_query();	
+			if(!process_2nd_packet())    //extracts _telem_callsign _telem_grid and _telem_power
 				{
-													fprintf(log_file,"\t No 2nd match, trying again without Frequency bin\r");
-					snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3);
+					//try again without fingerprinting or binning
+					snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ORDER BY time DESC LIMIT 1",_band_freq_for_query,(120+epoch_time-time_since_start_of_seq),start_minute_of_packet,_id1,_id3);
 					send_SQL_query();	
-					process_2nd_packet();    //extracts _telem_callsign _telem_grid and _telem_power
-					if (_2nd_pak_found==1) strcpy(detail_prepend_msg, "NO FREQ BIN MATCH! ");
-				}*/
-	decode_BASIC_telem_data();    //unpacks the encoded info from telemetry packet (into grid chars 5,6 and altitude) and converts grid to lat/lon. also gets _knots,_volts,_temp
+					if(process_2nd_packet())  //if it worked without finger or bin
+						{
+							decode_BASIC_telem_data();    //unpacks the encoded info from telemetry packet (into grid chars 5,6 and altitude) and converts grid to lat/lon. also gets _knots,_volts,_temp
+							prepend_to_comment(" NFB ");
+						}
+				}
+				else
+				decode_BASIC_telem_data();    //unpacks the encoded info from telemetry packet (into grid chars 5,6 and altitude) and converts grid to lat/lon. also gets _knots,_volts,_temp
 
-	if (regular_ET_is_Enabled)
-		{
-		// Build query string for slot 3 EXTENDED telemetry packet from wspr.live
-			start_minute_of_packet = (atoi(_start_minute)+4)%10;
-			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
-			send_SQL_query();   _TELEM_pak_found=0;
-			process_possible_TELEM_packet(3);       	 //extracts _telem_callsign _telem_grid and _telem_power, sets _TELEM_pak_found if something found
-			if (_TELEM_pak_found && regular_ET_is_Enabled) 					decode_regular_ET_for_slot(3);    		 //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
-		}
-	if (regular_ET_is_Enabled)
-		{
-		// Build query string for slot 4 EXTENDED telemetry packet from wspr.live
-			start_minute_of_packet = (atoi(_start_minute)+6)%10;
-			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
-			send_SQL_query();   _TELEM_pak_found=0;
-			process_possible_TELEM_packet(4);       	 //extracts _telem_callsign _telem_grid and _telem_power, sets _TELEM_pak_found if something found
-			if (_TELEM_pak_found) decode_regular_ET_for_slot(4);     //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
+			if (ET_is_Enabled) //regular or Generic
+			{	_TELEM_pak_found=0;
+				for(int i = 3; i < 6; i++)
+					{
+						// Build query string for slot i EXTENDED telemetry packet from wspr.live
+						start_minute_of_packet = (atoi(_start_minute)+((i-1)*2))%10;										//first try fingerprint to uploader callsign
+						snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') AND (rx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",_band_freq_for_query, ((i-1)*120)+(epoch_time-time_since_start_of_seq),start_minute_of_packet,_id1,_id3,_uploader);
+						send_SQL_query(); 
+						if(!process_possible_TELEM_packet(i))  //if fails, try without finger or bin
+						{
+							snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')   ORDER BY time DESC LIMIT 1",_band_freq_for_query, ((i-1)*120)+(epoch_time-time_since_start_of_seq),start_minute_of_packet,_id1,_id3);						
+							// orig with Binning snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
+							send_SQL_query(); 
+								if(process_possible_TELEM_packet(i))
+								{
+									decode_ET_for_slot(i); 
+									prepend_to_comment(" NFT ");
+								}
+						}
+						else
+						decode_ET_for_slot(i); 
+					}
+			}
 
-		// Build query string for slot 5 EXTENDED telemetry packet from wspr.live
-			start_minute_of_packet = (atoi(_start_minute)+8)%10;
-			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
-			send_SQL_query();   _TELEM_pak_found=0;
-			process_possible_TELEM_packet(5);       	 //extracts _telem_callsign _telem_grid and _telem_power, sets _TELEM_pak_found if something found
-			if (_TELEM_pak_found) decode_regular_ET_for_slot(5);     //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
-		}
-// if callsign and basic telem were found, send regular packet to sondehub
-	if 	((_1st_pak_found==1)&&(_2nd_pak_found==1)&&(second_pack_was_Basic_Telem==1))   //only if you received two packets AND the 2nd packet was basic telem (not someone else's Extended Telem)
-		{
-													fprintf(log_file,"SENDING TO SONDEHUB (regular)!! two paks were found and basic_telem was on \n");
-			maidenhead_to_latlon(_6_char_grid, &lat, &lon);	
-			if (regular_ET_is_Enabled) snprintf(detail,sizeof(detail),"%s %s %s",ET_results3,ET_results4,ET_results5);  //copies the ET resultss into detail field
-			remove_temporary_ET_data();	
-			send_to_sondehub();     // send to Sondehub via json payload
-		}
-	else  save_temporary_ET_data();
-	
+				//if we get here def recd callsign, now just check if a valid basic pak received
+				if (second_pack_was_Basic_Telem==1)
+				{
+															fprintf(log_file,"SENDING TO SONDEHUB (regular)!! two paks were found and basic_telem was on \n");
+					maidenhead_to_latlon(_6_char_grid, &lat, &lon);	
+					if (ET_is_Enabled) snprintf(detail,sizeof(detail),"%s %s %s",ET_results3,ET_results4,ET_results5);  //copies the ET resultss into detail field
+					send_to_sondehub();     // send to Sondehub via json payload
+				}
+
+			}
+
 	curl_easy_cleanup(curl); curl_global_cleanup(); fprintf(log_file,"\n\n");								
 	fclose(log_file); close(fd);  //close log and lockfile	
 	return 0;
+
 }
 

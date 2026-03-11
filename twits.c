@@ -309,7 +309,7 @@ int process_1st_packet(void)  //parses response to first SQL query (callsign pac
 			strcat(site_response, linne);   // append the line including newline
 			}
 
-															fprintf(log_file,"1st query response was: %.200s [TRUNCATED]",site_response);
+															fprintf(log_file,"1st query response was: \n\t%.200s [TRUNCATED]\n",site_response);
 	}
 	
 					//ugh, for fingerprinting must read ALL the potential spotters, needs the messy code below to do that
@@ -468,7 +468,7 @@ void send_to_sondehub(void)  //via json payload
 	char json_payload[701];
 	snprintf(json_payload, 700,"[{"
 	"\"software_name\":\"github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"6.2 March_10_2025\","
+	"\"software_version\":\"6.3 March_10_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"type\":\"%s\","
 	"\"datetime\":\"%s\","
@@ -564,7 +564,7 @@ void decode_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem_grid +_
 		if ((_telem_type==0)&&(slot_val==_slot))
 			{
 				//cycle through ET_config_array, for any matching slots extract data and append to ET_results         
-														fprintf(log_file,"about to cycle through ET Config array\n");
+														fprintf(log_file,"\t\tabout to cycle through ET Config array\n");
 				for(int i = 0; i < 31; i++)
 				{
 					if (ET_config_array[i].slot==_slot)

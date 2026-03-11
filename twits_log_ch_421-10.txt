@@ -26,3 +26,26 @@ JASON PAYLOAD to SONDEHUB is: [{"software_name":"github.com/EngineerGuy314/TWITS
 	 results from curl put was No error
 
 
+2026-03-11 13:17:26
+	start minute: 6  id1: Q id3: 1 SpinLock: 0 channel as integer: 421 freq lane: 1 low/high freq limits 28126000 28126070
+
+ start min: 6 time since seq: 701 current epoch: 1773235046 
+		query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='28') AND (time >1773234345) AND (stime LIKE '____-__-__ __%3A_6%25')  AND (tx_sign LIKE 'KC3LBR') ORDER BY time DESC LIMIT 1 and len: 264
+		       stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20rx_sign,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='28')%20AND%20(time%20>1773234345)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_6%25')%20%20AND%20(tx_sign%20LIKE%20'KC3LBR')%20ORDER%20BY%20time%20DESC%20LIMIT%201
+1st query response was: 2026-03-11 13:06:00	28	KC3LBR/SDR	KC3LBR	FN20	40.479	-75.042	13	2026-03-11 13:06:00
+1st packet PARSED: uploaders size:  and regular callsign (already known i hope): KC3LBR and the grid: 40.4
+
+ THE -uploader callsign is  and its size is 12 
+		query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='28') AND (time >1773234465) AND (stime LIKE '____-__-__ __%3A_8%25') AND (tx_sign LIKE 'Q_1%25') AND (rx_sign LIKE '') ORDER BY time DESC LIMIT 1 and len: 276
+		       stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='28')%20AND%20(time%20>1773234465)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20AND%20(tx_sign%20LIKE%20'Q_1%25')%20AND%20(rx_sign%20LIKE%20'')%20ORDER%20BY%20time%20DESC%20LIMIT%201
+	2nd query  NO RESPONSE
+		query string: db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='28') AND (time >1773234465) AND (stime LIKE '____-__-__ __%3A_8%25') AND (tx_sign LIKE 'Q_1%25') ORDER BY time DESC LIMIT 1 and len: 254
+		       stringified: db1.wspr.live/?query=SELECT%20toString(time)%20as%20stime,%20band,%20tx_sign,%20tx_loc,%20tx_lat,%20tx_lon,%20power,%20stime%20FROM%20wspr.rx%20WHERE%20(band='28')%20AND%20(time%20>1773234465)%20AND%20(stime%20LIKE%20'____-__-__%20__%3A_8%25')%20AND%20(tx_sign%20LIKE%20'Q_1%25')%20ORDER%20BY%20time%20DESC%20LIMIT%201
+2nd query response was: 2026-03-11 13:08:00	28	QA1OXO	QH85	-14.521	156.958	53	2026-03-11 13:08:00
+2nd query RAW: Telem callsign:QA1OXO , grid:QH85 , power:53
+BASIC-TELEM DECODE: alt: 80 grid56: HG 	 second_pack_was_Basic_Telem:1  bit1:1  knots:0 volts:26  temp:33 raw telem power of 53 normalized to 16
+SENDING TO SONDEHUB (regular)!! two paks were found and basic_telem was on 
+JASON PAYLOAD to SONDEHUB is: [{"software_name":"github.com/EngineerGuy314/TWITS","software_version":"6.03 March_9_2025","modulation":"WSPR","type":"JAWBONE","datetime":"2026-03-11T13:17:27.127Z","comment":" NFB x","detail":"","uploader_callsign":"","payload_callsign":"KC3LBR-421-10","lat":-255.729167,"lon":-443.375000,"alt":80,"temp":33,"batt":5.300000}]
+	 results from curl put was No error
+
+

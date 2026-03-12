@@ -191,7 +191,7 @@ void init(const char *arg) {   //receives channel # as arg
 
 						if (strncmp(line, "GENERIC", 7) == 0) 
 							{
-								GENERIC_ET_is_Enabled=1;
+								GENERIC_ET_is_Enabled=1;                     fprintf(log_file,"this is GENERIC ET!!!! \n");	
 								continue;
 							}
 
@@ -453,19 +453,20 @@ void send_to_sondehub(void)  //via json payload
 	char json_payload[701];
 	snprintf(json_payload, 700,"[{"
 	"\"software_name\":\"github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"6.4 March_12_2025\","
+	"\"software_version\":\"6.5 March_12_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"type\":\"%s\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
 	"\"detail\":\"%s%s\","
+	"\"uploader_callsign\":\"%s\","
 	"\"payload_callsign\":\"%s%s\","
 	"\"lat\":%f,"
 	"\"lon\":%f,"
 	"\"alt\":%d,"
 	"\"temp\":%d,"
 	"\"batt\":%f"
-	"}]",tracker_type,datetime,comment,detail_prepend_msg,detail,callsign,payload_suffix,lat,lon,altitude,_temp,2+(((_volts*5)+200)/(float)100));           
+	"}]",tracker_type,datetime,comment,detail_prepend_msg,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,_temp,2+(((_volts*5)+200)/(float)100));           
 
 														fprintf(log_file,"JASON PAYLOAD to SONDEHUB is: %s\n",json_payload);
 

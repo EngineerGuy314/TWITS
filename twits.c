@@ -1,9 +1,8 @@
 // to compile:    gcc twits.c -o twits.exe -lcurl
-// args: callsign, U4B_type_channel, comment, [ExtendedPrecisionTelemetry-enable]
+// args: callsign, U4B_type_channel, comment, tracker-type
 
 // for debug compile:   gcc -fsanitize=address -g twits.c -o twits.exe -lcurl
 //for compile with extra warnings: gcc -Wall -Wextra -Wformat twits.c -o twits.exe -lcurl
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +21,6 @@
 #include <sys/stat.h>  
 
 char LOGFILE_PATH[256];
-
 time_t epoch_time;
 size_t len;
 char query_raw[2001];           //will cause segflt if too small (should prolly make dynamic)
@@ -82,12 +80,11 @@ int _TELEM_pak_found;
 int _freq;
 int low_freq_limit;
 int high_freq_limit;
-int ET_is_Enabled=0;   //original ET0 style
-int GENERIC_ET_is_Enabled=0;  //means it does not use the 6 bits in original DEXT spec
+int ET_is_Enabled=0;   			//original ET0 style
+int GENERIC_ET_is_Enabled=0;    //means it does not use the 6 bits in original DEXT spec
 time_t time_since_start_of_seq;
 
-
-struct ET_data {          //for regular (custom message) Extended Telemetry
+struct ET_data {          //for Extended Telemetry
     char name[40];
     char units[10];
 	int low;
@@ -102,7 +99,7 @@ int High_res_TELEM_pak_found;
 const int8_t valid_dbm[19] = { 0, 3, 7, 10, 13, 17, 20, 23, 27, 30, 33, 37, 40, 43, 47, 50, 53, 57, 60};
 
 //*************************************************************************
-	void prepend_to_comment(const char *literal)
+void prepend_to_comment(const char *literal)
 {
     if (!literal || literal[0] == '\0') return;  // nothing to prepend
     char tmp[sizeof(comment)];  // safe temporary buffer
@@ -151,7 +148,7 @@ void init(const char *arg) {   //receives channel # as arg
 	_freq_lane = 1+((chan_num % 20)/5);   //1-4
 	_start_minute[1]=0;_id1[1]=0;_id3[1]=0;  //null terminations	
 	
-	if (strstr(arg, "-10") != NULL) 
+	if (strstr(arg, "-10") != NULL)      //user must append -10 to chan number to indicate 10Meter, otherwise assumes 20M. if you want a band other than 10 or 20, that is not supported right now
 		{                                //this flight is on 10 Meter band
 				strcpy(_band_freq_for_query,"28");
 
@@ -176,7 +173,7 @@ void init(const char *arg) {   //receives channel # as arg
 						case 4: low_freq_limit=14097160; high_freq_limit=14097200; break; 
 						}
 	}
-	high_freq_limit+=30;    //fudge factor, my trackers seem to be running a little high on output freq, also this in general loosens binning requirement since a lot of receivers are uncalibrated anyway. Future: change to fingerprinting to only use station that recd 1st packer? I don't know...
+	/*FYI, as of March 2026 not even using freq limits (lanes) anymore. Tries to fingerprint from callsign, if that fails reverts to 150 channel method, but will prepend indicator to comments*/
 														fprintf(log_file, "\tstart minute: %s  id1: %s id3: %s SpinLock: %d channel as integer: %d freq lane: %d low/high freq limits %d %d\n",_start_minute,_id1,_id3,was_spinlocked,chan_num,_freq_lane,low_freq_limit,high_freq_limit); 
 	//************** Check for ET (extended telemetry) config file ********************************************************************************
 	
@@ -234,7 +231,6 @@ void init(const char *arg) {   //receives channel # as arg
 		epoch_time = time(NULL);
 		detail[0]=0;
 }
-
 
 //************************************************************	
 void maidenhead_to_latlon(const char *grid, double *lat, double *lon) {
@@ -308,21 +304,17 @@ int process_1st_packet(void)  //parses response to first SQL query (callsign pac
 		 while (fgets(linne, sizeof(linne), fp)) {
 			strcat(site_response, linne);   // append the line including newline
 			}
+															fprintf(log_file,"1st query response was: \n%.200s [TRUNCATED]\n",site_response);
+	}	
 
-															fprintf(log_file,"1st query response was: \n\t%.200s [TRUNCATED]\n",site_response);
-	}
-	
-					//ugh, for fingerprinting must read ALL the potential spotters, needs the messy code below to do that
-	
-	//printf("full site repos:\n %s \n",site_response);
+					//for fingerprinting must read ALL the potential spotters (max 100), needs the messy code below to do that
     char *line;
 	char *token;
 	int line_index = 0;
     int count = 0;
 	memset(uploaders, 0, sizeof(uploaders)); //clear entire array
-	//token = strtok(site_response, "\t"); // Tokenize using tab separator
 	char *strtok_r_backing_tag;
-	line = strtok_r(site_response, "\n",&strtok_r_backing_tag);   // split into lines ( Tokenize using new line) MUST USE RENTETIVE VS OF STRTOK BECASUE OF NESTING
+	line = strtok_r(site_response, "\n",&strtok_r_backing_tag);   // split into lines ( Tokenize using new line) MUST USE RENTETIVE version OF STRTOK BECASUE OF NESTING
 	while (line != NULL && line_index < 100)
 		{
 			int field = 0;
@@ -331,21 +323,15 @@ int process_1st_packet(void)  //parses response to first SQL query (callsign pac
 			{
 				field++;
 				if (field == 3)
-				{
 					snprintf(uploaders[line_index], sizeof(uploaders[line_index]), "%s", token);
-				}
 				if (field == 5)
-				{
 					snprintf(_4chargrid,5, "%s", token);
-					//break;                   // done with this line
-				}
 				token = strtok(NULL, "\t");
 			}
-			line_index++;//printf("line index %d:",line_index);
+			line_index++;
 			line = strtok_r(NULL, "\n",&strtok_r_backing_tag);       // next line
 		}
 	
-		
 	fclose(fp);
 													if (_1st_pak_found==1) fprintf(log_file, "1st packet PARSED:  the grid: %s\n",_4chargrid);
 
@@ -458,7 +444,6 @@ _temp=(_32_bits%90)-50;
 size_t discard_response(char *ptr, size_t size, size_t nmemb, void *userdata) {
     return size * nmemb;
 }
-
 //***************************************************************************
 void send_to_sondehub(void)  //via json payload
 {
@@ -468,20 +453,19 @@ void send_to_sondehub(void)  //via json payload
 	char json_payload[701];
 	snprintf(json_payload, 700,"[{"
 	"\"software_name\":\"github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"6.3 March_10_2025\","
+	"\"software_version\":\"6.4 March_12_2025\","
 	"\"modulation\":\"WSPR\","
 	"\"type\":\"%s\","
 	"\"datetime\":\"%s\","
 	"\"comment\":\"%s\","
 	"\"detail\":\"%s%s\","
-	"\"uploader_callsign\":\"%s\","
 	"\"payload_callsign\":\"%s%s\","
 	"\"lat\":%f,"
 	"\"lon\":%f,"
 	"\"alt\":%d,"
 	"\"temp\":%d,"
 	"\"batt\":%f"
-	"}]",tracker_type,datetime,comment,detail_prepend_msg,detail,_uploader,callsign,payload_suffix,lat,lon,altitude,_temp,2+(((_volts*5)+200)/(float)100));           
+	"}]",tracker_type,datetime,comment,detail_prepend_msg,detail,callsign,payload_suffix,lat,lon,altitude,_temp,2+(((_volts*5)+200)/(float)100));           
 
 														fprintf(log_file,"JASON PAYLOAD to SONDEHUB is: %s\n",json_payload);
 
@@ -505,7 +489,6 @@ void send_to_sondehub(void)  //via json payload
 
 void decode_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem_grid +_telem_power) and appends result to ET_results if valid
 	{
-
 		uint64_t _64_bits;
 		int _telem_type;
 		int slot_val;
@@ -513,7 +496,6 @@ void decode_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem_grid +_
 		int data;
 		int _telem_power_CONVERTED;
 		int GenericET_6bits;
-
 													fprintf(log_file,"\tdecoding  ET packet in slot # %d \n",_slot);
 
 		for(int i = 0; i < 19; i++)
@@ -564,7 +546,7 @@ void decode_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem_grid +_
 		if ((_telem_type==0)&&(slot_val==_slot))
 			{
 				//cycle through ET_config_array, for any matching slots extract data and append to ET_results         
-														fprintf(log_file,"\t\tabout to cycle through ET Config array\n");
+																	fprintf(log_file,"\t\tabout to cycle through ET Config array\n");
 				for(int i = 0; i < 31; i++)
 				{
 					if (ET_config_array[i].slot==_slot)
@@ -583,11 +565,10 @@ void decode_ET_for_slot(int _slot)    //looks at (_telem_callsign+_telem_grid +_
 	}
 //***************************************************************************
 
-void add_all_the_callsigns(void)
+void add_all_the_callsigns(void)   //the queries must include ALL possible callsigns that could match fingerprinting
 {
 
-	if (uploaders[0][0] == '\0') fprintf(log_file,"\n bad bad bad... tried to add callsigns but none in array ... \n");
-
+																if (uploaders[0][0] == '\0') fprintf(log_file,"\n bad bad bad... tried to add callsigns but none in array ... \n");
 
 	snprintf(query_raw+strlen(query_raw), sizeof(query_raw)," AND (rx_sign IN (");
 
@@ -596,17 +577,16 @@ for (int i = 0; i < 100; i++)
     if (uploaders[i][0] == '\0') break;   // stop if empty entry
 	snprintf(query_raw+strlen(query_raw), sizeof(query_raw)," '%s',",uploaders[i]);
 }
-	query_raw[strlen(query_raw)-1]=0; //removes the last character ,
-	
-	  snprintf(query_raw+strlen(query_raw), sizeof(query_raw),")) ");
+	query_raw[strlen(query_raw)-1]=0; //removes the last character ,	
+	snprintf(query_raw+strlen(query_raw), sizeof(query_raw),")) ");
 
 }
 //*****************************************************************
 int main(int argc, char *argv[]) {
 	if (argc!=5) {printf("NOT ENOUGH ARGUMENTS !!! need 5 (including prog name). example: twits.exe callsign, channel, comment, tracker-type. arg count was : %d, \n",argc);fprintf(log_file,"Not enough cmd line args!\n"); fclose(log_file);exit(1);}
-	init(argv[2]); //some boring stuff, sends argv[2] (channel number)	 
+	init(argv[2]); //some boring stuff, processes argv[2] (channel number)	 
 	curl = curl_easy_init();
-														
+												//extract the other cmdline params		
 	snprintf(callsign, 7, "%s",argv[1]);
 	snprintf(payload_suffix, 8, "-%s",argv[2]);  //normally suffix is chan#
 	snprintf(comment,99,"%s",argv[3]);
@@ -615,10 +595,11 @@ int main(int argc, char *argv[]) {
 	start_minute_of_packet = atoi(_start_minute);
 	time_since_start_of_seq = 600 + (((epoch_time % 600) + (600-(start_minute_of_packet*60))) % 600);  // go far enough back in time to start at the beginning of the SECOND to last start-minute so you will gaurantees to see one full set
 	time_since_start_of_seq+=15; //fudge factor
-												fprintf(log_file,"\n start min: %d time since seq: %lld current epoch: %lld \n",start_minute_of_packet,(long long)time_since_start_of_seq,(long long)epoch_time);
+														fprintf(log_file,"\n start min: %d time since seq: %lld current epoch: %lld \n",start_minute_of_packet,(long long)time_since_start_of_seq,(long long)epoch_time);
 
 // Build query string for CALLSIGN PACKET 1 from wspr.live	  (up to 100 lines of data returned to get multiple fingerprint candidates)
-	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 100",_band_freq_for_query,(epoch_time-time_since_start_of_seq),start_minute_of_packet,argv[1]);
+	//orig snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 100",_band_freq_for_query,(epoch_time-time_since_start_of_seq),start_minute_of_packet,argv[1]);
+	snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, rx_sign, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (time <%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25')  AND (tx_sign LIKE '%s') ORDER BY time DESC LIMIT 100",_band_freq_for_query,(epoch_time-time_since_start_of_seq),  300+(epoch_time-time_since_start_of_seq)   ,start_minute_of_packet,argv[1]); //added time< check to make sure it doesn't pick the 2nd instance of packet 1 in the timeframe
 	send_SQL_query();
 	if (process_1st_packet())    //extracts _uploader and _4chargrid , TRUE if found (dont bother with anything else if not found)
 		{
@@ -628,17 +609,18 @@ int main(int argc, char *argv[]) {
 			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ",_band_freq_for_query,(120+epoch_time-time_since_start_of_seq),start_minute_of_packet,_id1,_id3);
 			add_all_the_callsigns();      //for fingerprint checking
 			snprintf(query_raw+strlen(query_raw), sizeof(query_raw)," ORDER BY time DESC LIMIT 1");  //safer way to append to a string
-
 			send_SQL_query();	
+
+// 2nd (Basic Telem) Packet
 			if(!process_2nd_packet())    //extracts _telem_callsign _telem_grid and _telem_power
 				{
 					//try again without fingerprinting or binning
 					snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ORDER BY time DESC LIMIT 1",_band_freq_for_query,(120+epoch_time-time_since_start_of_seq),start_minute_of_packet,_id1,_id3);
 					send_SQL_query();	
-					if(process_2nd_packet())  //if it worked without finger or bin
+					if(process_2nd_packet())  //see if it works without finger or bin. if this works, notation will be prepended to comments
 						{
 							decode_BASIC_telem_data();    //unpacks the encoded info from telemetry packet (into grid chars 5,6 and altitude) and converts grid to lat/lon. also gets _knots,_volts,_temp
-							prepend_to_comment(" NFB ");
+							prepend_to_comment(" NFB ");  //NFB : "No Fingerprint on Basic"
 						}
 				}
 				else
@@ -656,15 +638,15 @@ int main(int argc, char *argv[]) {
 						snprintf(query_raw+strlen(query_raw), sizeof(query_raw)," ORDER BY time DESC LIMIT 1");  //safer way to append to a string
 
 						send_SQL_query(); 
-						if(!process_possible_TELEM_packet(i))  //if fails, try without finger or bin
+						if(!process_possible_TELEM_packet(i))  //trying with all fingerprint callsigns, if it fails, will try without finger or bin below
 						{
 							snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')   ORDER BY time DESC LIMIT 1",_band_freq_for_query, ((i-1)*120)+(epoch_time-time_since_start_of_seq),start_minute_of_packet,_id1,_id3);						
-							// orig with Binning snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
+							// orig ver with Binning: snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25')  AND (frequency>%d) AND (frequency<%d) ORDER BY time DESC LIMIT 1",_band_freq_for_query,(epoch_time-SECONDS_TO_LOOK_BACK),start_minute_of_packet,_id1,_id3,low_freq_limit,high_freq_limit);
 							send_SQL_query(); 
-								if(process_possible_TELEM_packet(i))
+								if(process_possible_TELEM_packet(i))  //see if it works without finger or bin. if this works, notation will be prepended to comments
 								{
 									decode_ET_for_slot(i); 
-									prepend_to_comment(" NFT ");
+									prepend_to_comment(" NFT "); // NFT : No Fingerprint on Telemetry
 								}
 						}
 						else

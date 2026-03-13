@@ -453,7 +453,7 @@ void send_to_sondehub(void)  //via json payload
 	char json_payload[701];
 	snprintf(json_payload, 700,"[{"
 	"\"software_name\":\"github.com/EngineerGuy314/TWITS\","
-	"\"software_version\":\"6.5 March_12_2025\","
+	"\"software_version\":\"6.6 March_13_2026\","
 	"\"modulation\":\"WSPR\","
 	"\"type\":\"%s\","
 	"\"datetime\":\"%s\","
@@ -607,7 +607,7 @@ int main(int argc, char *argv[]) {
 			// Build query string for BASIC TELEM PACKET 2 from wspr.live
 			start_minute_of_packet = (atoi(_start_minute)+2)%10;
 			//snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') AND (rx_sign LIKE '%s') ORDER BY time DESC LIMIT 1",_band_freq_for_query,(120+epoch_time-time_since_start_of_seq),start_minute_of_packet,_id1,_id3,_uploader);
-			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ",_band_freq_for_query,(120+epoch_time-time_since_start_of_seq),start_minute_of_packet,_id1,_id3);
+			snprintf(query_raw, sizeof(query_raw),"db1.wspr.live/?query=SELECT toString(time) as stime, band, tx_sign, tx_loc, tx_lat, tx_lon, power, stime FROM wspr.rx WHERE (band='%s') AND (time >%ld) AND (time <%ld) AND (stime LIKE '____-__-__ __%%3A_%d%%25') AND (tx_sign LIKE '%s_%s%%25') ",_band_freq_for_query,(120+epoch_time-time_since_start_of_seq),  300+(epoch_time-time_since_start_of_seq),start_minute_of_packet,_id1,_id3);
 			add_all_the_callsigns();      //for fingerprint checking
 			snprintf(query_raw+strlen(query_raw), sizeof(query_raw)," ORDER BY time DESC LIMIT 1");  //safer way to append to a string
 			send_SQL_query();	
